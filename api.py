@@ -78,6 +78,7 @@ class SignalResponse(BaseModel):
     proba: float
     signal: int
     action: str
+    explanation: str  # NEW
 
 
 app = FastAPI(title="Stock Signal API")
@@ -142,6 +143,51 @@ def action_from_signal(sig: int) -> str:
     return "BUY" if sig == 1 else "NO_POSITION"
 
 
+def build_explanation(row: pd.Series) -> str:
+    """
+    Generate a short human-readable explanation based on
+    the latest feature values.
+    """
+    msgs = []
+
+    rsi = float(row.get("rsi", np.nan))
+    if not np.isnan(rsi):
+        if rsi > 70:
+            msgs.append(f"RSI is {rsi:.1f}, which is in overbought territory.")
+        elif rsi < 30:
+            msgs.append(f"RSI is {rsi:.1f}, which is in oversold territory.")
+        else:
+            msgs.append(f"RSI is {rsi:.1f}, a neutral momentum zone.")
+
+    ma10 = float(row.get("ma_10", np.nan))
+    ma20 = float(row.get("ma_20", np.nan))
+    if not np.isnan(ma10) and not np.isnan(ma20):
+        if ma10 > ma20:
+            msgs.append("Short-term trend is above the 20-day average, indicating upward momentum.")
+        elif ma10 < ma20:
+            msgs.append("Short-term trend is below the 20-day average, indicating downward momentum.")
+
+    vol20 = float(row.get("vol_20d", np.nan))
+    if not np.isnan(vol20):
+        if vol20 > 0.03:
+            msgs.append("Recent volatility is relatively high, so risk is elevated.")
+        elif vol20 < 0.015:
+            msgs.append("Recent volatility is relatively low, moves may be smaller.")
+
+    macd_val = float(row.get("macd", np.nan))
+    macd_sig = float(row.get("macd_signal", np.nan))
+    if not np.isnan(macd_val) and not np.isnan(macd_sig):
+        if macd_val > macd_sig:
+            msgs.append("MACD is above its signal line, a bullish momentum sign.")
+        elif macd_val < macd_sig:
+            msgs.append("MACD is below its signal line, a bearish momentum sign.")
+
+    if not msgs:
+        return "Technical indicators are in a mixed or neutral zone."
+
+    return " ".join(msgs)
+
+
 @app.post("/signal", response_model=SignalResponse)
 def get_signal(req: SignalRequest):
     window = last_lookback_window(req.ticker)
@@ -153,6 +199,7 @@ def get_signal(req: SignalRequest):
             proba=0.0,
             signal=0,
             action="NO_DATA",
+            explanation="Not enough history to compute indicators.",
         )
 
     X_tab = scaler.transform(window[FEATURES])
@@ -170,6 +217,8 @@ def get_signal(req: SignalRequest):
     action = action_from_signal(signal)
 
     last_row = window.iloc[-1]
+    explanation = build_explanation(last_row)
+
     return SignalResponse(
         ticker=req.ticker.upper(),
         date=str(last_row.name.date()),
@@ -177,10 +226,11 @@ def get_signal(req: SignalRequest):
         proba=float(proba_ens),
         signal=signal,
         action=action,
+        explanation=explanation,
     )
 
 
-# ---- NEW: history endpoint for charts ----
+# ---- history endpoint for charts ----
 @app.get("/history")
 def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
     """
@@ -211,7 +261,7 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
         X_tab.astype(np.float32)
     )[:, 1]
 
-    # LSTM probability: here use same sequence for all rows (last LOOKBACK_DAYS)
+    # LSTM probability: use same sequence for all rows (last LOOKBACK_DAYS)
     arr = window[FEATURES].values.astype(np.float32)
     X_seq = arr[np.newaxis, ...]
     proba_lstm_all = lstm_model.predict(X_seq, verbose=0).ravel()
@@ -243,4 +293,72 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
         "proba_low": proba_low.round(4).tolist(),
         "proba_high": proba_high.round(4).tolist(),
         "error": error.round(4).fillna(0).tolist(),
+    }
+
+
+# ---- NEW: metrics endpoint ----
+@app.get("/metrics")
+def get_metrics(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
+    """
+    Simple performance metrics for the last LOOKBACK_DAYS window:
+    hit-rate, mean absolute error, and average 5-day return after BUY.
+    """
+    window = last_lookback_window(ticker)
+    if window is None:
+        return {
+            "ticker": ticker.upper(),
+            "hit_rate": None,
+            "mae": None,
+            "avg_ret_buy": None,
+            "n_signals": 0,
+        }
+
+    X_tab = scaler.transform(window[FEATURES])
+    proba_rf_all = rf_model.predict_proba(
+        X_tab.astype(np.float32)
+    )[:, 1]
+
+    arr = window[FEATURES].values.astype(np.float32)
+    X_seq = arr[np.newaxis, ...]
+    proba_lstm_all = lstm_model.predict(X_seq, verbose=0).ravel()
+    if proba_lstm_all.shape[0] == 1:
+        proba_lstm_all = np.repeat(proba_lstm_all[0], len(window))
+
+    proba_ens_all = 0.5 * proba_rf_all + 0.5 * proba_lstm_all[: len(window)]
+
+    future_price = window["price"].shift(-5)
+    actual_ret_5d = (future_price / window["price"] - 1.0) * 100.0
+    actual_label = (actual_ret_5d > 0).astype(float)
+
+    mask = ~actual_label.isna()
+    if mask.sum() == 0:
+        return {
+            "ticker": ticker.upper(),
+            "hit_rate": None,
+            "mae": None,
+            "avg_ret_buy": None,
+            "n_signals": 0,
+        }
+
+    proba_valid = proba_ens_all[mask.values]
+    label_valid = actual_label[mask]
+
+    buy_mask = proba_valid >= 0.5
+    n_buy = int(buy_mask.sum())
+    if n_buy > 0:
+        hits = (label_valid[buy_mask] == 1.0).sum()
+        hit_rate = float(hits) / n_buy
+        avg_ret_buy = float(actual_ret_5d[mask][buy_mask].mean())
+    else:
+        hit_rate = None
+        avg_ret_buy = None
+
+    mae = float(np.abs(label_valid.values - proba_valid).mean())
+
+    return {
+        "ticker": ticker.upper(),
+        "hit_rate": hit_rate,
+        "mae": mae,
+        "avg_ret_buy": avg_ret_buy,
+        "n_signals": int(mask.sum()),
     }
