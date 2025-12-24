@@ -10,8 +10,6 @@
 
   <style>
     :root {
-      --bg1: #020617;
-      --bg2: #020617;
       --accent-blue: #2563eb;
       --accent-green: #22c55e;
       --accent-red: #f97373;
@@ -21,9 +19,7 @@
       --border: rgba(148, 163, 184, 0.3);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -35,7 +31,6 @@
       overflow-x: hidden;
     }
 
-    /* Animated gradient halo */
     .bg-gradient {
       position: fixed;
       inset: 0;
@@ -47,7 +42,6 @@
       filter: blur(8px);
       animation: floatGlow 18s ease-in-out infinite alternate;
     }
-
     @keyframes floatGlow {
       0% { transform: translate3d(0,0,0); opacity: 0.9; }
       100% { transform: translate3d(0,-10px,0); opacity: 1; }
@@ -104,9 +98,7 @@
       gap: 20px;
     }
     @media (max-width: 950px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
+      .layout { grid-template-columns: 1fr; }
     }
 
     .panel {
@@ -131,9 +123,7 @@
       transition: opacity 0.4s ease;
       pointer-events: none;
     }
-    .panel:hover::before {
-      opacity: 1;
-    }
+    .panel:hover::before { opacity: 1; }
 
     .input-row {
       display: flex;
@@ -153,9 +143,7 @@
       outline: none;
       transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
-    .input-row input::placeholder {
-      color: rgba(148,163,184,0.8);
-    }
+    .input-row input::placeholder { color: rgba(148,163,184,0.8); }
     .input-row input:focus {
       border-color: #38bdf8;
       box-shadow: 0 0 0 1px rgba(56,189,248,0.35);
@@ -182,12 +170,6 @@
       box-shadow:
         0 0 0 1px rgba(37,99,235,0.8),
         0 14px 30px rgba(15,23,42,0.9);
-    }
-    .input-row button:active {
-      transform: translateY(0);
-      box-shadow:
-        0 0 0 1px rgba(37,99,235,0.6),
-        0 8px 16px rgba(15,23,42,0.85);
     }
 
     .status {
@@ -224,12 +206,8 @@
       margin: 4px 0;
       font-size: 13px;
     }
-    .label {
-      color: var(--text-muted);
-    }
-    .value {
-      font-weight: 600;
-    }
+    .label { color: var(--text-muted); }
+    .value { font-weight: 600; }
 
     .badge {
       display: inline-block;
@@ -254,12 +232,8 @@
       box-shadow: 0 0 0 1px rgba(248,113,113,0.45);
     }
 
-    .prob-change-up {
-      animation: probFlashUp 0.7s ease-out;
-    }
-    .prob-change-down {
-      animation: probFlashDown 0.7s ease-out;
-    }
+    .prob-change-up { animation: probFlashUp 0.7s ease-out; }
+    .prob-change-down { animation: probFlashDown 0.7s ease-out; }
     @keyframes probFlashUp {
       0% { color: #22c55e; text-shadow: 0 0 12px rgba(34,197,94,0.8); }
       100% { color: inherit; text-shadow: none; }
@@ -269,9 +243,7 @@
       100% { color: inherit; text-shadow: none; }
     }
 
-    .chart-wrapper {
-      margin-top: 18px;
-    }
+    .chart-wrapper { margin-top: 18px; }
     .chart-header {
       display: flex;
       justify-content: space-between;
@@ -316,23 +288,25 @@
       padding-left: 18px;
       margin: 4px 0 0;
     }
-    .explain-list li {
-      margin: 3px 0;
-    }
+    .explain-list li { margin: 3px 0; }
 
-    .watchlist-table {
+    .watchlist-table,
+    .portfolio-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 8px;
       font-size: 12px;
     }
     .watchlist-table th,
-    .watchlist-table td {
+    .watchlist-table td,
+    .portfolio-table th,
+    .portfolio-table td {
       border-bottom: 1px solid rgba(30,64,175,0.4);
       padding: 6px 4px;
       text-align: left;
     }
-    .watchlist-table th {
+    .watchlist-table th,
+    .portfolio-table th {
       color: var(--text-muted);
       font-weight: 500;
       font-size: 11px;
@@ -361,6 +335,38 @@
       font-size: 11px;
       color: #6b7280;
       margin: 10px 0 20px;
+    }
+
+    .portfolio-inputs {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .portfolio-inputs input {
+      flex: 1;
+      min-width: 80px;
+      padding: 6px 8px;
+      font-size: 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.8);
+      color: var(--text-main);
+    }
+    .portfolio-inputs button {
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(37,99,235,0.9);
+      color: #f9fafb;
+      cursor: pointer;
+    }
+
+    .portfolio-summary {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
     }
   </style>
 </head>
@@ -410,13 +416,11 @@
           </div>
         </div>
 
-        <!-- Explanation card -->
         <div class="card" id="explainCard" style="margin-top:12px; display:none;">
           <h2 style="font-size:15px; margin-bottom:6px;">Why this signal?</h2>
           <p id="explainText" style="font-size:12px; color: var(--text-muted); margin:0;"></p>
         </div>
 
-        <!-- Price & probability chart -->
         <div class="chart-wrapper" id="chartSection" style="display:none;">
           <div class="chart-header">
             <div class="chart-title">Price, moving averages & probability</div>
@@ -431,13 +435,13 @@
         </div>
       </div>
 
-      <!-- RIGHT: explanation + watchlist + metrics + notes -->
+      <!-- RIGHT: explanation + watchlist + metrics + notes + portfolio -->
       <div class="panel">
         <div>
           <div class="sidebar-title">How to read this signal</div>
           <ul class="explain-list">
-            <li><strong>BUY</strong> – model expects a better‑than‑average 5‑day move. Always combine with your own risk controls.</li>
-            <li><strong>NO POSITION</strong> – model sees little or negative edge; consider staying in cash.</li>
+            <li><strong>BUY</strong> – model expects a better‑than‑average 5‑day move. Combine with your own risk controls.</li>
+            <li><strong>NO POSITION</strong> – model sees little or negative edge; consider staying out.</li>
             <li>Confidence combines probability, trend and recent accuracy for that ticker.</li>
           </ul>
         </div>
@@ -455,9 +459,7 @@
                 <th>Action</th>
               </tr>
             </thead>
-            <tbody>
-              <!-- rows injected by JS -->
-            </tbody>
+            <tbody></tbody>
           </table>
         </div>
 
@@ -471,6 +473,37 @@
         </div>
       </div>
     </div>
+
+    <!-- Portfolio section spanning full width -->
+    <div style="margin-top:22px;">
+      <div class="panel">
+        <div class="sidebar-title">My Portfolio (local to this browser)</div>
+
+        <div class="portfolio-inputs">
+          <input id="pfTicker" placeholder="Ticker (e.g. AAPL)" />
+          <input id="pfQty" placeholder="Quantity" type="number" min="1" />
+          <input id="pfPrice" placeholder="Buy price (optional)" type="number" step="0.01" min="0" />
+          <button id="pfAddBtn">Add / Update</button>
+        </div>
+
+        <table class="portfolio-table" id="portfolioTable">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Qty</th>
+              <th>Buy price</th>
+              <th>Last price</th>
+              <th>Value</th>
+              <th>Model action</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="portfolio-summary" id="portfolioSummary"></div>
+      </div>
+    </div>
   </div>
 
   <footer>
@@ -482,8 +515,6 @@
 
     let priceChart = null;
     const defaultWatchlist = ["AAPL", "MSFT", "GOOG", "TSLA"];
-
-    // store full history for range filtering
     let histCache = null;
     let lastProba = null;
 
@@ -603,9 +634,7 @@
         if (!histCache.dates || histCache.dates.length === 0) return;
         applyRangeAndRenderChart("ALL");
         document.getElementById("chartSection").style.display = "block";
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) { console.error(e); }
     }
 
     function applyRangeAndRenderChart(rangeKey) {
@@ -696,21 +725,12 @@
         },
         options: {
           responsive: true,
-          interaction: {
-            mode: "index",
-            intersect: false
-          },
-          animation: {
-            duration: 400,
-            easing: "easeOutQuad"
-          },
+          interaction: { mode: "index", intersect: false },
+          animation: { duration: 400, easing: "easeOutQuad" },
           plugins: {
             legend: {
               position: "top",
-              labels: {
-                color: "#e5e7eb",
-                boxWidth: 10
-              }
+              labels: { color: "#e5e7eb", boxWidth: 10 }
             },
             tooltip: {
               mode: "index",
@@ -741,32 +761,21 @@
             yPrice: {
               type: "linear",
               position: "left",
-              title: {
-                display: true,
-                text: "Price",
-                color: "#e5e7eb"
-              },
+              title: { display: true, text: "Price", color: "#e5e7eb" },
               ticks: { color: "#9ca3af" },
               grid: { color: "rgba(148,163,184,0.25)" }
             },
             yProba: {
               type: "linear",
               position: "right",
-              title: {
-                display: true,
-                text: "Probability (%)",
-                color: "#e5e7eb"
-              },
+              title: { display: true, text: "Probability (%)", color: "#e5e7eb" },
               min: 0,
               max: 100,
               ticks: { color: "#9ca3af" },
               grid: { drawOnChartArea: false }
             },
             x: {
-              ticks: {
-                maxTicksLimit: 8,
-                color: "#9ca3af"
-              },
+              ticks: { maxTicksLimit: 8, color: "#9ca3af" },
               grid: { color: "rgba(30,64,175,0.3)" }
             }
           }
@@ -774,18 +783,15 @@
       });
     }
 
-    // range buttons behavior
     document.getElementById("rangeButtons").addEventListener("click", (e) => {
       if (e.target.tagName !== "BUTTON") return;
       const key = e.target.getAttribute("data-range");
       if (!key) return;
-
       document.querySelectorAll("#rangeButtons button").forEach(btn => btn.classList.remove("active"));
       e.target.classList.add("active");
       applyRangeAndRenderChart(key);
     });
 
-    // metrics using /metrics
     async function loadMetrics(ticker) {
       const box = document.getElementById("metricsBox");
       box.textContent = "Loading model performance...";
@@ -806,7 +812,8 @@
         const maePct = (m.mae * 100).toFixed(1);
         const avgRet = m.avg_ret_buy.toFixed(2);
 
-        document.getElementById("confidenceText").textContent = formatConfidence(lastProba ?? m.hit_rate, m.mae);
+        document.getElementById("confidenceText").textContent =
+          formatConfidence(lastProba ?? m.hit_rate, m.mae);
 
         box.innerHTML = `
           <div style="font-weight:600; margin-bottom:4px; color:#e5e7eb;">
@@ -828,11 +835,10 @@
       }
     }
 
-    // notes / journal using localStorage
+    // notes / journal
     function storageKeyFor(ticker) {
       return "notes_" + ticker.toUpperCase();
     }
-
     function renderNotes(ticker) {
       const listEl = document.getElementById("notesList");
       const key = storageKeyFor(ticker);
@@ -846,13 +852,10 @@
         listEl.innerHTML = "<em>No notes yet for this ticker.</em>";
         return;
       }
-      listEl.innerHTML = notes
-        .slice()
-        .reverse()
+      listEl.innerHTML = notes.slice().reverse()
         .map(n => `<div style="margin-bottom:4px;"><strong>${n.time}</strong>: ${n.text}</div>`)
         .join("");
     }
-
     function setupNotes() {
       const saveBtn = document.getElementById("saveNoteBtn");
       saveBtn.addEventListener("click", () => {
@@ -867,9 +870,7 @@
         const key = storageKeyFor(ticker);
         const raw = localStorage.getItem(key);
         const notes = raw ? JSON.parse(raw) : [];
-        const now = new Date();
-        const stamp = now.toLocaleString();
-
+        const stamp = new Date().toLocaleString();
         notes.push({ time: stamp, text });
         localStorage.setItem(key, JSON.stringify(notes));
         input.value = "";
@@ -882,7 +883,6 @@
     async function loadWatchlist() {
       const tbody = document.querySelector("#watchlistTable tbody");
       tbody.innerHTML = "";
-
       for (const t of defaultWatchlist) {
         const row = document.createElement("tr");
         row.className = "watchlist-row";
@@ -892,17 +892,14 @@
           <td><span class="badge">Loading...</span></td>
         `;
         tbody.appendChild(row);
-
         row.addEventListener("click", () => {
           document.getElementById("tickerInput").value = t;
           loadSignalAndCharts(t);
         });
-
         try {
           const data = await fetchSignal(t);
           const probaPct = (data.proba * 100).toFixed(1) + " %";
           const act = formatAction(data.action, data.proba);
-
           row.cells[1].textContent = probaPct;
           row.cells[2].innerHTML = `<span class="${act.cls}">${act.text}</span>`;
         } catch {
@@ -911,12 +908,131 @@
         }
       }
     }
+    document.getElementById("refreshWatchlist").addEventListener("click", loadWatchlist);
 
-    document.getElementById("refreshWatchlist").addEventListener("click", () => {
-      loadWatchlist();
+    // portfolio (localStorage)
+    const PF_KEY = "my_portfolio_positions";
+
+    function loadPortfolioFromStorage() {
+      const raw = localStorage.getItem(PF_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function savePortfolioToStorage(items) {
+      localStorage.setItem(PF_KEY, JSON.stringify(items));
+    }
+
+    function renderPortfolioTable() {
+      const tbody = document.querySelector("#portfolioTable tbody");
+      const items = loadPortfolioFromStorage();
+      tbody.innerHTML = "";
+
+      let totalValue = 0;
+      let byActionValue = { BUY: 0, HOLD: 0, NONE: 0 };
+
+      for (const item of items) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.ticker}</td>
+          <td>${item.qty}</td>
+          <td>${item.buyPrice != null ? item.buyPrice.toFixed(2) : "-"}</td>
+          <td>${item.lastPrice != null ? item.lastPrice.toFixed(2) : "-"}</td>
+          <td>${item.value != null ? item.value.toFixed(2) : "-"}</td>
+          <td>${item.actionText || "-"}</td>
+          <td><button data-ticker="${item.ticker}" style="font-size:10px;padding:2px 6px;border-radius:999px;border:none;background:#ef4444;color:#fff;cursor:pointer;">Remove</button></td>
+        `;
+        tbody.appendChild(row);
+        if (item.value != null) totalValue += item.value;
+        if (item.action === "BUY") byActionValue.BUY += item.value || 0;
+        else if (item.action === "HOLD") byActionValue.HOLD += item.value || 0;
+        else byActionValue.NONE += item.value || 0;
+      }
+
+      const summaryEl = document.getElementById("portfolioSummary");
+      if (!items.length) {
+        summaryEl.textContent = "No positions yet. Add tickers and quantities to see portfolio guidance.";
+      } else {
+        const tv = totalValue.toFixed(2);
+        const pct = (v) => totalValue > 0 ? (v / totalValue * 100).toFixed(1) + " %" : "0.0 %";
+        summaryEl.innerHTML = `
+          Total estimated value: <strong>${tv}</strong> |
+          In BUY signals: <strong>${pct(byActionValue.BUY)}</strong> |
+          In HOLD/Neutral: <strong>${pct(byActionValue.HOLD)}</strong> |
+          In NO POSITION: <strong>${pct(byActionValue.NONE)}</strong>
+        `;
+      }
+
+      tbody.querySelectorAll("button[data-ticker]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const t = btn.getAttribute("data-ticker");
+          const filtered = items.filter(i => i.ticker !== t);
+          savePortfolioToStorage(filtered);
+          renderPortfolioTable();
+        });
+      });
+    }
+
+    async function refreshPortfolioSignals() {
+      const items = loadPortfolioFromStorage();
+      if (!items.length) {
+        renderPortfolioTable();
+        return;
+      }
+      for (const item of items) {
+        try {
+          const data = await fetchSignal(item.ticker);
+          item.lastPrice = data.price;
+          item.value = data.price * item.qty;
+          const actObj = formatAction(data.action, data.proba);
+          item.actionText = actObj.text;
+          if (data.action === "BUY") item.action = "BUY";
+          else if (data.action === "NO_POSITION" && data.proba >= 0.4 && data.proba <= 0.6) item.action = "HOLD";
+          else item.action = "NONE";
+        } catch (e) {
+          console.error("Portfolio signal error", item.ticker, e);
+        }
+      }
+      savePortfolioToStorage(items);
+      renderPortfolioTable();
+    }
+
+    document.getElementById("pfAddBtn").addEventListener("click", () => {
+      const t = document.getElementById("pfTicker").value.trim().toUpperCase();
+      const qtyVal = parseFloat(document.getElementById("pfQty").value);
+      const priceVal = parseFloat(document.getElementById("pfPrice").value);
+      if (!t || !qtyVal || qtyVal <= 0) {
+        alert("Please enter a ticker and a positive quantity.");
+        return;
+      }
+      const items = loadPortfolioFromStorage();
+      const existing = items.find(i => i.ticker === t);
+      if (existing) {
+        existing.qty = qtyVal;
+        existing.buyPrice = isNaN(priceVal) ? existing.buyPrice : priceVal;
+      } else {
+        items.push({
+          ticker: t,
+          qty: qtyVal,
+          buyPrice: isNaN(priceVal) ? null : priceVal,
+          lastPrice: null,
+          value: null,
+          action: null,
+          actionText: null
+        });
+      }
+      savePortfolioToStorage(items);
+      renderPortfolioTable();
+      refreshPortfolioSignals();
     });
 
-    // dark mode toggle (just adjust halo intensity)
+    document.getElementById("rangeButtons").addEventListener("click", (e) => {
+      if (e.target.tagName !== "BUTTON") return;
+      const key = e.target.getAttribute("data-range");
+      if (!key) return;
+      document.querySelectorAll("#rangeButtons button").forEach(btn => btn.classList.remove("active"));
+      e.target.classList.add("active");
+      applyRangeAndRenderChart(key);
+    });
+
     document.getElementById("themeToggle").addEventListener("click", () => {
       const body = document.body;
       const isDark = body.dataset.mode === "dark";
@@ -924,8 +1040,13 @@
       document.getElementById("themeToggle").textContent = isDark ? "☾ Dark mode" : "☼ Light mode";
     });
 
-    setupNotes();
-    loadWatchlist();
+    function init() {
+      setupNotes();
+      loadWatchlist();
+      renderPortfolioTable();
+      refreshPortfolioSignals();
+    }
+    init();
   </script>
 </body>
 </html>
