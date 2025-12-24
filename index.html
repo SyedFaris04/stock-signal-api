@@ -53,6 +53,11 @@
       50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(6, 182, 212, 0.3); }
     }
 
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     body {
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text-main);
@@ -69,7 +74,6 @@
       background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
     }
 
-    /* Animated particles */
     .particles {
       position: fixed;
       inset: 0;
@@ -259,7 +263,7 @@
       background: #ffffff;
     }
 
-    .input-row button {
+    .input-row button, .btn {
       padding: 12px 28px;
       border-radius: 999px;
       border: none;
@@ -274,7 +278,7 @@
       position: relative;
       overflow: hidden;
     }
-    .input-row button::before {
+    .input-row button::before, .btn::before {
       content: '';
       position: absolute;
       inset: 0;
@@ -282,12 +286,12 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-    .input-row button:hover::before { opacity: 1; }
-    .input-row button:hover {
+    .input-row button:hover::before, .btn:hover::before { opacity: 1; }
+    .input-row button:hover, .btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
-    .input-row button:active {
+    .input-row button:active, .btn:active {
       transform: translateY(0);
     }
 
@@ -452,7 +456,9 @@
     }
 
     .watchlist-table,
-    .portfolio-table {
+    .portfolio-table,
+    .alert-table,
+    .history-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 12px;
@@ -461,13 +467,19 @@
     .watchlist-table th,
     .watchlist-table td,
     .portfolio-table th,
-    .portfolio-table td {
+    .portfolio-table td,
+    .alert-table th,
+    .alert-table td,
+    .history-table th,
+    .history-table td {
       border-bottom: 1px solid rgba(148, 163, 184, 0.15);
       padding: 12px 8px;
       text-align: left;
     }
     .watchlist-table th,
-    .portfolio-table th {
+    .portfolio-table th,
+    .alert-table th,
+    .history-table th {
       color: var(--text-muted);
       font-weight: 700;
       font-size: 11px;
@@ -503,13 +515,16 @@
       opacity: 0.7;
     }
 
-    .portfolio-inputs {
+    .portfolio-inputs,
+    .alert-inputs {
       display: flex;
       gap: 8px;
       margin-top: 12px;
       flex-wrap: wrap;
     }
-    .portfolio-inputs input {
+    .portfolio-inputs input,
+    .alert-inputs input,
+    .alert-inputs select {
       flex: 1;
       min-width: 100px;
       padding: 10px 14px;
@@ -521,11 +536,15 @@
       color: var(--text-main);
       transition: all 0.2s ease;
     }
-    .portfolio-inputs input:focus {
+    .portfolio-inputs input:focus,
+    .alert-inputs input:focus,
+    .alert-inputs select:focus {
       border-color: #3b82f6;
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      outline: none;
     }
-    .portfolio-inputs button {
+    .portfolio-inputs button,
+    .alert-inputs button {
       padding: 10px 18px;
       font-size: 12px;
       font-weight: 700;
@@ -537,7 +556,8 @@
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
       transition: all 0.2s ease;
     }
-    .portfolio-inputs button:hover {
+    .portfolio-inputs button:hover,
+    .alert-inputs button:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
     }
@@ -548,6 +568,77 @@
       color: var(--text-muted);
       font-weight: 600;
       line-height: 1.8;
+    }
+
+    .diversity-visual {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(59, 130, 246, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .diversity-bar {
+      height: 24px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      margin: 12px 0;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .diversity-segment {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .diversity-segment:hover {
+      filter: brightness(1.2);
+      transform: scaleY(1.1);
+    }
+
+    .diversity-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .alert-notification {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: #fff;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+      max-width: 320px;
+      font-weight: 600;
+      font-size: 13px;
     }
 
     @media (max-width: 640px) {
@@ -561,8 +652,9 @@
       .card { padding: 16px 18px; }
       .info-row { font-size: 13px; }
       .chart-header { flex-direction: column; align-items: flex-start; }
-      .portfolio-inputs { gap: 6px; }
-      .portfolio-inputs input { min-width: 80px; font-size: 11px; }
+      .portfolio-inputs, .alert-inputs { gap: 6px; }
+      .portfolio-inputs input, .alert-inputs input { min-width: 80px; font-size: 11px; }
+      .alert-notification { right: 10px; top: 70px; max-width: calc(100% - 20px); }
     }
   </style>
 </head>
@@ -708,6 +800,69 @@
         </table>
 
         <div class="portfolio-summary" id="portfolioSummary"></div>
+
+        <!-- Diversity Score -->
+        <div id="diversitySection" style="display:none;">
+          <div class="diversity-visual">
+            <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:var(--text-main);">Portfolio Diversity by Sector</div>
+            <div class="diversity-bar" id="diversityBar"></div>
+            <div class="diversity-legend" id="diversityLegend"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Price Alerts -->
+    <div style="margin-top:28px;">
+      <div class="panel">
+        <div class="sidebar-title">Price & Probability Alerts</div>
+        <div class="alert-inputs">
+          <input id="alertTicker" placeholder="Ticker" />
+          <select id="alertType">
+            <option value="price">Price reaches</option>
+            <option value="proba">Probability above</option>
+          </select>
+          <input id="alertValue" placeholder="Value" type="number" step="0.01" />
+          <button id="alertAddBtn">Set Alert</button>
+        </div>
+
+        <table class="alert-table" id="alertTable">
+          <thead>
+            <tr>
+              <th>Ticker</th>
+              <th>Type</th>
+              <th>Target</th>
+              <th>Current</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Trade History -->
+    <div style="margin-top:28px;">
+      <div class="panel">
+        <div class="sidebar-title">Trade History Log</div>
+        <table class="history-table" id="historyTable">
+          <thead>
+            <tr>
+              <th>Date Added</th>
+              <th>Ticker</th>
+              <th>Signal</th>
+              <th>Entry Prob</th>
+              <th>Entry Price</th>
+              <th>Current Price</th>
+              <th>Performance</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div id="historyEmpty" style="margin-top:12px; font-size:12px; color:var(--text-muted); text-align:center;">
+          No trade history yet. Stocks added to your portfolio will appear here.
+        </div>
       </div>
     </div>
   </div>
@@ -723,6 +878,24 @@
     const defaultWatchlist = ["AAPL", "MSFT", "GOOG", "TSLA"];
     let histCache = null;
     let lastProba = null;
+
+    // Sector mapping (simplified)
+    const SECTOR_MAP = {
+      'AAPL': 'Technology', 'MSFT': 'Technology', 'GOOG': 'Technology', 'GOOGL': 'Technology',
+      'NVDA': 'Technology', 'META': 'Technology', 'TSLA': 'Consumer', 'AMZN': 'Consumer',
+      'JPM': 'Finance', 'BAC': 'Finance', 'WFC': 'Finance', 'GS': 'Finance',
+      'JNJ': 'Healthcare', 'PFE': 'Healthcare', 'UNH': 'Healthcare', 'ABBV': 'Healthcare',
+      'XOM': 'Energy', 'CVX': 'Energy', 'COP': 'Energy'
+    };
+
+    const SECTOR_COLORS = {
+      'Technology': '#3b82f6',
+      'Finance': '#10b981',
+      'Healthcare': '#f59e0b',
+      'Consumer': '#ec4899',
+      'Energy': '#8b5cf6',
+      'Other': '#6b7280'
+    };
 
     function formatAction(action, proba) {
       if (action === "BUY") {
@@ -832,6 +1005,7 @@
         await loadPriceHistory(ticker);
         await loadMetrics(ticker);
         renderNotes(data.ticker);
+        checkAlerts();
       } catch (err) {
         console.error(err);
         statusEl.textContent = "Failed to call API.";
@@ -1140,6 +1314,7 @@
     document.getElementById("refreshWatchlist").addEventListener("click", loadWatchlist);
 
     const PF_KEY = "my_portfolio_positions";
+    const HISTORY_KEY = "trade_history_log";
 
     function loadPortfolioFromStorage() {
       const raw = localStorage.getItem(PF_KEY);
@@ -1149,6 +1324,14 @@
       localStorage.setItem(PF_KEY, JSON.stringify(items));
     }
 
+    function loadHistoryFromStorage() {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveHistoryToStorage(items) {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+    }
+
     function renderPortfolioTable() {
       const tbody = document.querySelector("#portfolioTable tbody");
       const items = loadPortfolioFromStorage();
@@ -1156,6 +1339,7 @@
 
       let totalValue = 0;
       let byActionValue = { BUY: 0, HOLD: 0, NONE: 0 };
+      let sectorAllocation = {};
 
       for (const item of items) {
         const pl = (item.lastPrice != null && item.buyPrice != null)
@@ -1174,7 +1358,11 @@
           <td><button data-ticker="${item.ticker}" style="font-size:10px;padding:4px 8px;border-radius:999px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-weight:700;transition:all 0.2s ease;">Remove</button></td>
         `;
         tbody.appendChild(row);
-        if (item.value != null) totalValue += item.value;
+        if (item.value != null) {
+          totalValue += item.value;
+          const sector = SECTOR_MAP[item.ticker] || 'Other';
+          sectorAllocation[sector] = (sectorAllocation[sector] || 0) + item.value;
+        }
         if (item.action === "BUY") byActionValue.BUY += item.value || 0;
         else if (item.action === "HOLD") byActionValue.HOLD += item.value || 0;
         else byActionValue.NONE += item.value || 0;
@@ -1183,6 +1371,7 @@
       const summaryEl = document.getElementById("portfolioSummary");
       if (!items.length) {
         summaryEl.textContent = "No positions yet. Add tickers and quantities to see portfolio guidance.";
+        document.getElementById("diversitySection").style.display = "none";
       } else {
         const tv = totalValue.toFixed(2);
         const pct = (v) => totalValue > 0 ? (v / totalValue * 100).toFixed(1) + " %" : "0.0 %";
@@ -1192,6 +1381,7 @@
           In HOLD/Neutral: <strong style="color:#f59e0b;">${pct(byActionValue.HOLD)}</strong> |
           In NO POSITION: <strong style="color:#ef4444;">${pct(byActionValue.NONE)}</strong>
         `;
+        renderDiversityScore(sectorAllocation, totalValue);
       }
 
       tbody.querySelectorAll("button[data-ticker]").forEach(btn => {
@@ -1200,6 +1390,7 @@
           const filtered = items.filter(i => i.ticker !== t);
           savePortfolioToStorage(filtered);
           renderPortfolioTable();
+          renderTradeHistory();
         });
         btn.addEventListener("mouseenter", () => {
           btn.style.transform = "scale(1.1)";
@@ -1210,6 +1401,38 @@
           btn.style.boxShadow = "none";
         });
       });
+    }
+
+    function renderDiversityScore(allocation, total) {
+      if (total === 0 || Object.keys(allocation).length === 0) {
+        document.getElementById("diversitySection").style.display = "none";
+        return;
+      }
+
+      document.getElementById("diversitySection").style.display = "block";
+      const barEl = document.getElementById("diversityBar");
+      const legendEl = document.getElementById("diversityLegend");
+
+      barEl.innerHTML = "";
+      legendEl.innerHTML = "";
+
+      for (const [sector, value] of Object.entries(allocation)) {
+        const pct = (value / total * 100).toFixed(1);
+        const segment = document.createElement("div");
+        segment.className = "diversity-segment";
+        segment.style.width = pct + "%";
+        segment.style.background = SECTOR_COLORS[sector] || SECTOR_COLORS['Other'];
+        segment.textContent = pct > 5 ? pct + "%" : "";
+        barEl.appendChild(segment);
+
+        const legendItem = document.createElement("div");
+        legendItem.className = "legend-item";
+        legendItem.innerHTML = `
+          <div class="legend-color" style="background:${SECTOR_COLORS[sector] || SECTOR_COLORS['Other']}"></div>
+          <span><strong>${sector}:</strong> ${pct}%</span>
+        `;
+        legendEl.appendChild(legendItem);
+      }
     }
 
     async function refreshPortfolioSignals() {
@@ -1236,7 +1459,7 @@
       renderPortfolioTable();
     }
 
-    document.getElementById("pfAddBtn").addEventListener("click", () => {
+    document.getElementById("pfAddBtn").addEventListener("click", async () => {
       const t = document.getElementById("pfTicker").value.trim().toUpperCase();
       const qtyVal = parseFloat(document.getElementById("pfQty").value);
       const priceVal = parseFloat(document.getElementById("pfPrice").value);
@@ -1246,6 +1469,25 @@
       }
       const items = loadPortfolioFromStorage();
       const existing = items.find(i => i.ticker === t);
+      
+      if (!existing) {
+        try {
+          const data = await fetchSignal(t);
+          const history = loadHistoryFromStorage();
+          history.push({
+            date: new Date().toLocaleString(),
+            ticker: t,
+            signal: formatAction(data.action, data.proba).text,
+            entryProba: data.proba,
+            entryPrice: priceVal || data.price,
+            currentPrice: data.price
+          });
+          saveHistoryToStorage(history);
+        } catch (e) {
+          console.error("Could not log trade", e);
+        }
+      }
+
       if (existing) {
         existing.qty = qtyVal;
         existing.buyPrice = isNaN(priceVal) ? existing.buyPrice : priceVal;
@@ -1263,7 +1505,174 @@
       savePortfolioToStorage(items);
       renderPortfolioTable();
       refreshPortfolioSignals();
+      renderTradeHistory();
     });
+
+    // Alerts
+    const ALERTS_KEY = "price_alerts";
+
+    function loadAlertsFromStorage() {
+      const raw = localStorage.getItem(ALERTS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+    function saveAlertsToStorage(items) {
+      localStorage.setItem(ALERTS_KEY, JSON.stringify(items));
+    }
+
+    function renderAlertTable() {
+      const tbody = document.querySelector("#alertTable tbody");
+      const alerts = loadAlertsFromStorage();
+      tbody.innerHTML = "";
+
+      if (alerts.length === 0) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td colspan="6" style="text-align:center; color:var(--text-muted); font-size:12px;">No alerts set. Create one above.</td>`;
+        tbody.appendChild(row);
+        return;
+      }
+
+      for (const alert of alerts) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="font-weight:700;">${alert.ticker}</td>
+          <td>${alert.type === 'price' ? 'Price' : 'Probability'}</td>
+          <td>${alert.target}</td>
+          <td>${alert.current || '–'}</td>
+          <td><span class="badge ${alert.triggered ? 'badge-buy' : 'badge-none'}">${alert.triggered ? 'Triggered' : 'Active'}</span></td>
+          <td><button data-ticker="${alert.ticker}" data-target="${alert.target}" data-type="${alert.type}" style="font-size:10px;padding:4px 8px;border-radius:999px;border:none;background:#ef4444;color:#fff;cursor:pointer;font-weight:700;">Remove</button></td>
+        `;
+        tbody.appendChild(row);
+      }
+
+      tbody.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const ticker = btn.getAttribute("data-ticker");
+          const target = btn.getAttribute("data-target");
+          const type = btn.getAttribute("data-type");
+          const filtered = alerts.filter(a => !(a.ticker === ticker && a.target == target && a.type === type));
+          saveAlertsToStorage(filtered);
+          renderAlertTable();
+        });
+      });
+    }
+
+    document.getElementById("alertAddBtn").addEventListener("click", () => {
+      const ticker = document.getElementById("alertTicker").value.trim().toUpperCase();
+      const type = document.getElementById("alertType").value;
+      const target = parseFloat(document.getElementById("alertValue").value);
+
+      if (!ticker || !target || target <= 0) {
+        alert("Please enter valid ticker and target value.");
+        return;
+      }
+
+      const alerts = loadAlertsFromStorage();
+      alerts.push({ ticker, type, target, current: null, triggered: false });
+      saveAlertsToStorage(alerts);
+      renderAlertTable();
+      document.getElementById("alertTicker").value = "";
+      document.getElementById("alertValue").value = "";
+    });
+
+    async function checkAlerts() {
+      const alerts = loadAlertsFromStorage();
+      let updated = false;
+
+      for (const alert of alerts) {
+        if (alert.triggered) continue;
+        
+        try {
+          const data = await fetchSignal(alert.ticker);
+          if (alert.type === 'price') {
+            alert.current = data.price.toFixed(2);
+            if (data.price >= alert.target) {
+              alert.triggered = true;
+              showNotification(`🚨 Alert: ${alert.ticker} price reached $${data.price.toFixed(2)}`);
+              updated = true;
+            }
+          } else {
+            alert.current = (data.proba * 100).toFixed(1) + '%';
+            if (data.proba * 100 >= alert.target) {
+              alert.triggered = true;
+              showNotification(`🚨 Alert: ${alert.ticker} probability is ${(data.proba * 100).toFixed(1)}%`);
+              updated = true;
+            }
+          }
+        } catch (e) {
+          console.error("Alert check error", e);
+        }
+      }
+
+      if (updated) {
+        saveAlertsToStorage(alerts);
+        renderAlertTable();
+      }
+    }
+
+    function showNotification(message) {
+      const notif = document.createElement("div");
+      notif.className = "alert-notification";
+      notif.textContent = message;
+      document.body.appendChild(notif);
+      setTimeout(() => {
+        notif.remove();
+      }, 5000);
+    }
+
+    // Trade History
+    function renderTradeHistory() {
+      const tbody = document.querySelector("#historyTable tbody");
+      const emptyEl = document.getElementById("historyEmpty");
+      const history = loadHistoryFromStorage();
+
+      tbody.innerHTML = "";
+
+      if (history.length === 0) {
+        emptyEl.style.display = "block";
+        return;
+      }
+
+      emptyEl.style.display = "none";
+
+      for (const trade of history.slice().reverse()) {
+        const perfPct = trade.currentPrice && trade.entryPrice 
+          ? (((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100).toFixed(2)
+          : "–";
+        const perfColor = perfPct !== "–" ? (parseFloat(perfPct) >= 0 ? "#10b981" : "#ef4444") : "var(--text-muted)";
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td style="font-size:11px;">${trade.date}</td>
+          <td style="font-weight:700;">${trade.ticker}</td>
+          <td>${trade.signal}</td>
+          <td>${(trade.entryProba * 100).toFixed(1)}%</td>
+          <td>${trade.entryPrice.toFixed(2)}</td>
+          <td style="font-weight:700;">${trade.currentPrice ? trade.currentPrice.toFixed(2) : "–"}</td>
+          <td style="color:${perfColor}; font-weight:700;">${perfPct !== "–" ? perfPct + "%" : "–"}</td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+
+    async function updateTradeHistoryPrices() {
+      const history = loadHistoryFromStorage();
+      let updated = false;
+
+      for (const trade of history) {
+        try {
+          const data = await fetchSignal(trade.ticker);
+          trade.currentPrice = data.price;
+          updated = true;
+        } catch (e) {
+          console.error("History update error", e);
+        }
+      }
+
+      if (updated) {
+        saveHistoryToStorage(history);
+        renderTradeHistory();
+      }
+    }
 
     document.getElementById("themeToggle").addEventListener("click", () => {
       const body = document.body;
@@ -1273,14 +1682,18 @@
       if (histCache) applyRangeAndRenderChart(document.querySelector("#rangeButtons .active").dataset.range);
     });
 
-    function setupNotesAndUI() {
+    function init() {
       setupNotes();
       loadWatchlist();
       renderPortfolioTable();
       refreshPortfolioSignals();
+      renderAlertTable();
+      renderTradeHistory();
+      updateTradeHistoryPrices();
+      setInterval(checkAlerts, 60000); // Check alerts every minute
     }
 
-    setupNotesAndUI();
+    init();
   </script>
 </body>
 </html>
