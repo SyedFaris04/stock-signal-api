@@ -1,5 +1,6 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware  # NEW
+from typing import Any, Dict
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import numpy as np
 import pandas as pd
@@ -25,7 +26,8 @@ FEATURES = [
 ]
 LOOKBACK_DAYS = 60
 
-# ---- feature helpers (same logic as notebook, simplified) ----
+
+# ---- feature helpers ----
 def compute_rsi(series, window=14):
     delta = series.diff()
     gain = delta.clip(lower=0).rolling(window).mean()
@@ -80,14 +82,15 @@ class SignalResponse(BaseModel):
 
 app = FastAPI(title="Stock Signal API")
 
-# ---- CORS configuration (IMPORTANT) ----
+# ---- CORS configuration ----
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # for demo/FYP; later restrict to your frontend origin
+    allow_origins=["*"],  # for demo/FYP; later restrict to your frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 def last_lookback_window(ticker: str):
     end = datetime.utcnow()
@@ -175,3 +178,69 @@ def get_signal(req: SignalRequest):
         signal=signal,
         action=action,
     )
+
+
+# ---- NEW: history endpoint for charts ----
+@app.get("/history")
+def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
+    """
+    Return the last LOOKBACK_DAYS of data for charting:
+    OHLC prices, MA10, MA20, model probability and
+    a simple confidence band and error.
+    """
+    window = last_lookback_window(ticker)
+    if window is None:
+        return {
+            "ticker": ticker.upper(),
+            "dates": [],
+            "open": [],
+            "high": [],
+            "low": [],
+            "close": [],
+            "ma10": [],
+            "ma20": [],
+            "proba": [],
+            "proba_low": [],
+            "proba_high": [],
+            "error": [],
+        }
+
+    # RF probabilities for all rows
+    X_tab = scaler.transform(window[FEATURES])
+    proba_rf_all = rf_model.predict_proba(
+        X_tab.astype(np.float32)
+    )[:, 1]
+
+    # LSTM probability: here use same sequence for all rows (last LOOKBACK_DAYS)
+    arr = window[FEATURES].values.astype(np.float32)
+    X_seq = arr[np.newaxis, ...]
+    proba_lstm_all = lstm_model.predict(X_seq, verbose=0).ravel()
+    if proba_lstm_all.shape[0] == 1:
+        proba_lstm_all = np.repeat(proba_lstm_all[0], len(window))
+
+    proba_ens_all = 0.5 * proba_rf_all + 0.5 * proba_lstm_all[: len(window)]
+
+    # Simple confidence band: +/- 0.1 around ensemble, clipped to [0,1]
+    proba_low = np.clip(proba_ens_all - 0.1, 0.0, 1.0)
+    proba_high = np.clip(proba_ens_all + 0.1, 0.0, 1.0)
+
+    # Actual 5‑day forward label for rough error metric
+    future_price = window["price"].shift(-5)
+    actual_ret_5d = (future_price / window["price"] - 1.0) * 100.0
+    actual_label = (actual_ret_5d > 0).astype(float)
+    error = (actual_label - proba_ens_all).abs()
+
+    return {
+        "ticker": ticker.upper(),
+        "dates": [str(idx.date()) for idx in window.index],
+        "open": window["Open"].round(2).tolist(),
+        "high": window["High"].round(2).tolist(),
+        "low": window["Low"].round(2).tolist(),
+        "close": window["price"].round(2).tolist(),
+        "ma10": window["ma_10"].round(2).tolist(),
+        "ma20": window["ma_20"].round(2).tolist(),
+        "proba": proba_ens_all.round(4).tolist(),
+        "proba_low": proba_low.round(4).tolist(),
+        "proba_high": proba_high.round(4).tolist(),
+        "error": error.round(4).fillna(0).tolist(),
+    }
