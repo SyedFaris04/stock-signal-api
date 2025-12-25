@@ -48,14 +48,24 @@
       50% { transform: translate(20px, -30px) scale(1.1); opacity: 0.9; }
     }
 
+    @keyframes slideInHero {
+      from { opacity: 0; transform: translateX(-30px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
     @keyframes pulseGlow {
-      0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 0 0 40px rgba(6, 182, 212, 0.2); }
-      50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6), 0 0 60px rgba(6, 182, 212, 0.3); }
+      0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.7); }
     }
 
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes countUp {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     body {
@@ -175,8 +185,150 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
     }
-    .theme-toggle:active {
-      transform: translateY(0);
+
+    /* FEATURE 1: LIVE MARKET PULSE HERO */
+    .hero-pulse {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 24px auto 0;
+      padding: 0 20px;
+    }
+
+    .pulse-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .pulse-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pulse-live {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulseDot 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .pulse-container {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding: 16px 0;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .pulse-container::-webkit-scrollbar { display: none; }
+
+    .pulse-card {
+      min-width: 260px;
+      background: var(--bg-panel);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-strong);
+      animation: slideInHero 0.5s ease forwards;
+      opacity: 0;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .pulse-card:nth-child(1) { animation-delay: 0.1s; }
+    .pulse-card:nth-child(2) { animation-delay: 0.2s; }
+    .pulse-card:nth-child(3) { animation-delay: 0.3s; }
+    .pulse-card:nth-child(4) { animation-delay: 0.4s; }
+
+    .pulse-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.6), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .pulse-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(59, 130, 246, 0.3);
+    }
+
+    .pulse-card:hover::before { opacity: 1; }
+
+    .pulse-card.strong-buy {
+      border-color: rgba(16, 185, 129, 0.5);
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    .pulse-ticker {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+
+    .pulse-signal {
+      font-size: 11px;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pulse-proba {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: countUp 0.6s ease;
+    }
+
+    .pulse-trend {
+      font-size: 11px;
+      margin-top: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
+    .trend-up {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+    }
+
+    .trend-down {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
     }
 
     .page {
@@ -232,6 +384,103 @@
       pointer-events: none;
     }
     .panel:hover::after { opacity: 1; }
+
+    /* FEATURE 2: SIGNAL ENERGY METER */
+    .energy-meter {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin: 20px 0;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
+      border-radius: 20px;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .energy-meter::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.6), transparent);
+    }
+
+    .circular-progress {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      flex-shrink: 0;
+    }
+
+    .circular-progress svg {
+      transform: rotate(-90deg);
+      filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.3));
+    }
+
+    .circular-progress circle {
+      fill: none;
+      stroke-width: 10;
+    }
+
+    .circular-progress .bg-circle {
+      stroke: rgba(148, 163, 184, 0.15);
+    }
+
+    .circular-progress .progress-circle {
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+      stroke-dasharray: 314;
+      stroke-dashoffset: 314;
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .progress-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .progress-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .energy-details {
+      flex: 1;
+    }
+
+    .energy-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+
+    .energy-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-weight: 500;
+    }
 
     .input-row {
       display: flex;
@@ -395,7 +644,7 @@
       100% { color: inherit; text-shadow: none; transform: scale(1); }
     }
 
-    .chart-wrapper { margin-top: 24px; }
+    .chart-wrapper { margin-top: 24px; position: relative; }
     .chart-header {
       display: flex;
       justify-content: space-between;
@@ -434,6 +683,75 @@
       color: #fff;
       border-color: transparent;
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    /* FEATURE 3: TIME MACHINE TOOLTIP */
+    .time-machine-tooltip {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      border-radius: 16px;
+      padding: 16px 20px;
+      pointer-events: none;
+      z-index: 1000;
+      min-width: 280px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(59, 130, 246, 0.3);
+      backdrop-filter: blur(20px);
+      animation: slideIn 0.2s ease;
+      display: none;
+    }
+
+    .time-machine-tooltip.visible {
+      display: block;
+    }
+
+    .tm-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .tm-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 0;
+      font-size: 12px;
+    }
+
+    .tm-label {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .tm-value {
+      font-weight: 700;
+      color: #f1f5f9;
+    }
+
+    .tm-verdict {
+      margin-top: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tm-correct {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .tm-wrong {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
     }
 
     .sidebar-title {
@@ -644,8 +962,12 @@
     @media (max-width: 640px) {
       header { padding: 12px 16px; }
       header h1 { font-size: 18px; }
+      .hero-pulse { padding: 0 12px; }
+      .pulse-card { min-width: 220px; }
       .page { padding: 0 12px; margin: 20px auto 30px; }
       .panel { padding: 20px; border-radius: 18px; }
+      .energy-meter { flex-direction: column; text-align: center; }
+      .circular-progress { width: 110px; height: 110px; }
       .input-row { gap: 8px; }
       .input-row input { min-width: 140px; font-size: 13px; padding: 10px 14px; }
       .input-row button { padding: 10px 20px; font-size: 13px; }
@@ -655,6 +977,7 @@
       .portfolio-inputs, .alert-inputs { gap: 6px; }
       .portfolio-inputs input, .alert-inputs input { min-width: 80px; font-size: 11px; }
       .alert-notification { right: 10px; top: 70px; max-width: calc(100% - 20px); }
+      .time-machine-tooltip { min-width: 240px; font-size: 11px; }
     }
   </style>
 </head>
@@ -674,6 +997,20 @@
     <button class="theme-toggle" id="themeToggle">☾ Dark Mode</button>
   </header>
 
+  <!-- FEATURE 1: LIVE MARKET PULSE -->
+  <div class="hero-pulse">
+    <div class="pulse-header">
+      <div class="pulse-title">⚡ Live Market Pulse</div>
+      <div class="pulse-live">
+        <div class="pulse-dot"></div>
+        <span>LIVE</span>
+      </div>
+    </div>
+    <div class="pulse-container" id="pulseContainer">
+      <!-- Auto-populated on load -->
+    </div>
+  </div>
+
   <div class="page">
     <div class="layout">
       <!-- LEFT main -->
@@ -683,6 +1020,24 @@
           <button id="getSignalBtn">Get Signal</button>
         </div>
         <div class="status" id="statusText"></div>
+
+        <!-- FEATURE 2: ENERGY METER -->
+        <div id="energyMeter" class="energy-meter" style="display:none;">
+          <div class="circular-progress">
+            <svg width="130" height="130">
+              <circle class="bg-circle" cx="65" cy="65" r="50"></circle>
+              <circle class="progress-circle" id="progressCircle" cx="65" cy="65" r="50"></circle>
+            </svg>
+            <div class="progress-text">
+              <div class="progress-value" id="progressValue">0%</div>
+              <div class="progress-label">Confidence</div>
+            </div>
+          </div>
+          <div class="energy-details">
+            <div class="energy-title" id="energyTitle">Signal Energy</div>
+            <div class="energy-desc" id="energyDesc">Analyzing market momentum...</div>
+          </div>
+        </div>
 
         <div class="card" id="resultCard" style="display:none;">
           <h2 id="resultTitle"></h2>
@@ -717,9 +1072,10 @@
           <p id="explainText" style="font-size:12px; color: var(--text-muted); margin:0; line-height:1.7;"></p>
         </div>
 
+        <!-- FEATURE 3: TIME MACHINE CHART -->
         <div class="chart-wrapper" id="chartSection" style="display:none;">
           <div class="chart-header">
-            <div class="chart-title">Price, moving averages & probability</div>
+            <div class="chart-title">📊 Price & Probability — Click any point to travel back in time</div>
             <div class="range-buttons" id="rangeButtons">
               <button data-range="1M">1M</button>
               <button data-range="3M">3M</button>
@@ -728,6 +1084,7 @@
             </div>
           </div>
           <canvas id="priceChart" height="120"></canvas>
+          <div class="time-machine-tooltip" id="tmTooltip"></div>
         </div>
       </div>
 
@@ -801,7 +1158,6 @@
 
         <div class="portfolio-summary" id="portfolioSummary"></div>
 
-        <!-- Diversity Score -->
         <div id="diversitySection" style="display:none;">
           <div class="diversity-visual">
             <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:var(--text-main);">Portfolio Diversity by Sector</div>
@@ -878,8 +1234,8 @@
     const defaultWatchlist = ["AAPL", "MSFT", "GOOG", "TSLA"];
     let histCache = null;
     let lastProba = null;
+    let timeMachineData = null;
 
-    // Sector mapping (simplified)
     const SECTOR_MAP = {
       'AAPL': 'Technology', 'MSFT': 'Technology', 'GOOG': 'Technology', 'GOOGL': 'Technology',
       'NVDA': 'Technology', 'META': 'Technology', 'TSLA': 'Consumer', 'AMZN': 'Consumer',
@@ -925,6 +1281,58 @@
       return "Risk level: High – treat this signal with caution and smaller position sizes.";
     }
 
+    // FEATURE 2: Update Energy Meter
+    function updateEnergyMeter(proba, action) {
+      const meter = document.getElementById("energyMeter");
+      const circle = document.getElementById("progressCircle");
+      const value = document.getElementById("progressValue");
+      const title = document.getElementById("energyTitle");
+      const desc = document.getElementById("energyDesc");
+
+      meter.style.display = "flex";
+      
+      const percentage = (proba * 100).toFixed(0);
+      const circumference = 314;
+      const offset = circumference - (circumference * proba);
+
+      // Animate circle
+      setTimeout(() => {
+        circle.style.strokeDashoffset = offset;
+      }, 100);
+
+      // Dynamic color based on probability
+      let color, glowColor, description;
+      if (proba >= 0.7) {
+        color = "#10b981";
+        glowColor = "rgba(16, 185, 129, 0.5)";
+        description = "Strong upward momentum detected. Model shows high confidence in positive 5-day outlook.";
+        title.textContent = "🔥 High Energy Signal";
+      } else if (proba >= 0.6) {
+        color = "#06b6d4";
+        glowColor = "rgba(6, 182, 212, 0.5)";
+        description = "Moderate bullish signal. Risk-reward appears favorable with decent probability.";
+        title.textContent = "⚡ Moderate Energy";
+      } else if (proba >= 0.4) {
+        color = "#f59e0b";
+        glowColor = "rgba(245, 158, 11, 0.5)";
+        description = "Neutral zone. Model sees balanced risk. Consider waiting for clearer signal.";
+        title.textContent = "⚖️ Neutral Energy";
+      } else {
+        color = "#ef4444";
+        glowColor = "rgba(239, 68, 68, 0.5)";
+        description = "Low probability zone. Model suggests caution or staying out of this trade.";
+        title.textContent = "⚠️ Low Energy";
+      }
+
+      circle.style.stroke = color;
+      circle.style.filter = `drop-shadow(0 0 12px ${glowColor})`;
+      value.textContent = percentage + "%";
+      value.style.background = `linear-gradient(135deg, ${color}, #06b6d4)`;
+      value.style.webkitBackgroundClip = "text";
+      value.style.webkitTextFillColor = "transparent";
+      desc.textContent = description;
+    }
+
     async function fetchSignal(ticker) {
       const resp = await fetch(API_BASE + "/signal", {
         method: "POST",
@@ -955,6 +1363,7 @@
       cardEl.style.display = "none";
       explainCard.style.display = "none";
       chartSection.style.display = "none";
+      document.getElementById("energyMeter").style.display = "none";
       cardEl.classList.remove("visible");
       explainCard.classList.remove("visible");
 
@@ -967,6 +1376,10 @@
         }
 
         statusEl.textContent = "";
+        
+        // Update energy meter first
+        updateEnergyMeter(data.proba, data.action);
+
         document.getElementById("resultTitle").textContent = data.ticker + " signal";
         document.getElementById("resultDate").textContent  = data.date;
         document.getElementById("resultPrice").textContent = data.price.toFixed(2);
@@ -1018,11 +1431,13 @@
         if (!resp.ok) return;
         histCache = await resp.json();
         if (!histCache.dates || histCache.dates.length === 0) return;
+        timeMachineData = histCache; // Store for time machine
         applyRangeAndRenderChart("ALL");
         document.getElementById("chartSection").style.display = "block";
       } catch (e) { console.error(e); }
     }
 
+    // FEATURE 3: Time Machine Chart with Click Handler
     function applyRangeAndRenderChart(rangeKey) {
       if (!histCache) return;
       const total = histCache.dates.length;
@@ -1060,6 +1475,10 @@
               borderColor: "#3b82f6",
               borderWidth: 2,
               pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: "#3b82f6",
+              pointHoverBorderColor: "#fff",
+              pointHoverBorderWidth: 2,
               tension: 0.3,
               yAxisID: "yPrice"
             },
@@ -1111,67 +1530,138 @@
           responsive: true,
           interaction: { mode: "index", intersect: false },
           animation: { duration: 500, easing: "easeOutQuart" },
+          onClick: (event, activeElements) => {
+            if (activeElements.length > 0) {
+              const index = activeElements[0].index;
+              showTimeMachineTooltip(event, index, { labels, close, open, high, low, proba, probaLow, probaHigh, error });
+            }
+          },
           plugins: {
             legend: {
               position: "top",
-              labels: { color: getComputedStyle(document.body).getPropertyValue("--text-main"), boxWidth: 12, font: { size: 11, weight: '600' } }
+              labels: { 
+                color: getComputedStyle(document.body).getPropertyValue("--text-main"), 
+                boxWidth: 12, 
+                font: { size: 11, weight: '600' } 
+              }
             },
             tooltip: {
-              mode: "index",
-              intersect: false,
-              backgroundColor: 'rgba(15, 23, 42, 0.95)',
-              titleColor: '#f1f5f9',
-              bodyColor: '#cbd5e1',
-              borderColor: 'rgba(59, 130, 246, 0.5)',
-              borderWidth: 1,
-              padding: 12,
-              callbacks: {
-                title: (items) => items[0].label,
-                label: (ctx) => {
-                  const i = ctx.dataIndex;
-                  if (ctx.datasetIndex !== 0) return "";
-                  const prob = (proba[i] * 100).toFixed(1);
-                  const probLowStr = (probaLow[i] * 100).toFixed(1);
-                  const probHighStr = (probaHigh[i] * 100).toFixed(1);
-                  const errStr = (error[i] * 100).toFixed(1);
-                  return [
-                    `Open:  ${open[i]}`,
-                    `High:  ${high[i]}`,
-                    `Low:   ${low[i]}`,
-                    `Close: ${close[i]}`,
-                    `Predicted prob: ${prob} %`,
-                    `Conf. band: ${probLowStr}–${probHighStr} %`,
-                    `Classification error: ${errStr} %`
-                  ];
-                }
-              }
+              enabled: false // We use custom time machine tooltip
             }
           },
           scales: {
             yPrice: {
               type: "linear",
               position: "left",
-              title: { display: true, text: "Price", color: getComputedStyle(document.body).getPropertyValue("--text-main"), font: { size: 12, weight: '700' } },
-              ticks: { color: getComputedStyle(document.body).getPropertyValue("--text-muted"), font: { size: 11 } },
+              title: { 
+                display: true, 
+                text: "Price", 
+                color: getComputedStyle(document.body).getPropertyValue("--text-main"), 
+                font: { size: 12, weight: '700' } 
+              },
+              ticks: { 
+                color: getComputedStyle(document.body).getPropertyValue("--text-muted"), 
+                font: { size: 11 } 
+              },
               grid: { color: "rgba(148,163,184,0.15)" }
             },
             yProba: {
               type: "linear",
               position: "right",
-              title: { display: true, text: "Probability (%)", color: getComputedStyle(document.body).getPropertyValue("--text-main"), font: { size: 12, weight: '700' } },
+              title: { 
+                display: true, 
+                text: "Probability (%)", 
+                color: getComputedStyle(document.body).getPropertyValue("--text-main"), 
+                font: { size: 12, weight: '700' } 
+              },
               min: 0,
               max: 100,
-              ticks: { color: getComputedStyle(document.body).getPropertyValue("--text-muted"), font: { size: 11 } },
+              ticks: { 
+                color: getComputedStyle(document.body).getPropertyValue("--text-muted"), 
+                font: { size: 11 } 
+              },
               grid: { drawOnChartArea: false }
             },
             x: {
-              ticks: { maxTicksLimit: 8, color: getComputedStyle(document.body).getPropertyValue("--text-muted"), font: { size: 10 } },
+              ticks: { 
+                maxTicksLimit: 8, 
+                color: getComputedStyle(document.body).getPropertyValue("--text-muted"), 
+                font: { size: 10 } 
+              },
               grid: { color: "rgba(148,163,184,0.1)" }
             }
           }
         }
       });
     }
+
+    // FEATURE 3: Time Machine Tooltip Display
+    function showTimeMachineTooltip(event, index, data) {
+      const tooltip = document.getElementById("tmTooltip");
+      const date = data.labels[index];
+      const closePrice = data.close[index];
+      const prob = (data.proba[index] * 100).toFixed(1);
+      const probLow = (data.probaLow[index] * 100).toFixed(1);
+      const probHigh = (data.probaHigh[index] * 100).toFixed(1);
+      
+      // Calculate 5-day forward return if data available
+      let futureReturn = null;
+      let verdict = null;
+      if (index + 5 < data.close.length) {
+        const futurePrice = data.close[index + 5];
+        futureReturn = (((futurePrice - closePrice) / closePrice) * 100).toFixed(2);
+        
+        // Check if model was correct
+        const modelPredictedUp = data.proba[index] > 0.5;
+        const actualWentUp = futureReturn > 0;
+        verdict = modelPredictedUp === actualWentUp ? "correct" : "wrong";
+      }
+
+      tooltip.innerHTML = `
+        <div class="tm-title">🕰️ Time Machine: ${date}</div>
+        <div class="tm-row">
+          <span class="tm-label">Price that day:</span>
+          <span class="tm-value">$${closePrice.toFixed(2)}</span>
+        </div>
+        <div class="tm-row">
+          <span class="tm-label">Model probability:</span>
+          <span class="tm-value">${prob}%</span>
+        </div>
+        <div class="tm-row">
+          <span class="tm-label">Confidence band:</span>
+          <span class="tm-value">${probLow}% - ${probHigh}%</span>
+        </div>
+        ${futureReturn !== null ? `
+          <div class="tm-row">
+            <span class="tm-label">Actual 5-day return:</span>
+            <span class="tm-value" style="color:${futureReturn >= 0 ? '#10b981' : '#ef4444'}">${futureReturn}%</span>
+          </div>
+          <div class="tm-verdict ${verdict === 'correct' ? 'tm-correct' : 'tm-wrong'}">
+            Model was ${verdict === 'correct' ? '✅ CORRECT' : '❌ WRONG'}
+          </div>
+        ` : '<div class="tm-row"><span class="tm-label" style="font-style:italic;">Not enough future data to verify</span></div>'}
+      `;
+
+      tooltip.classList.add("visible");
+      
+      // Position tooltip near click
+      const rect = event.native.target.getBoundingClientRect();
+      tooltip.style.left = (event.native.pageX + 20) + "px";
+      tooltip.style.top = (event.native.pageY - 100) + "px";
+
+      // Auto-hide after 8 seconds
+      setTimeout(() => {
+        tooltip.classList.remove("visible");
+      }, 8000);
+    }
+
+    // Hide time machine tooltip on scroll or outside click
+    document.addEventListener("click", (e) => {
+      const tooltip = document.getElementById("tmTooltip");
+      if (!tooltip.contains(e.target) && e.target.id !== "priceChart") {
+        tooltip.classList.remove("visible");
+      }
+    });
 
     document.getElementById("rangeButtons").addEventListener("click", (e) => {
       if (e.target.tagName !== "BUTTON") return;
@@ -1271,6 +1761,55 @@
         renderNotes(ticker);
         alert("Note saved – good habit for tracking your decisions.");
       });
+    }
+
+    // FEATURE 1: Live Market Pulse on Page Load
+    async function loadLiveMarketPulse() {
+      const container = document.getElementById("pulseContainer");
+      container.innerHTML = "";
+
+      const pulseList = ["AAPL", "NVDA", "TSLA", "MSFT"];
+
+      for (const ticker of pulseList) {
+        try {
+          const data = await fetchSignal(ticker);
+          const probaPct = (data.proba * 100).toFixed(1);
+          const act = formatAction(data.action, data.proba);
+          
+          const card = document.createElement("div");
+          card.className = data.proba >= 0.7 ? "pulse-card strong-buy" : "pulse-card";
+          
+          let trendIcon = "";
+          let trendClass = "";
+          if (data.proba >= 0.6) {
+            trendIcon = "📈 Strengthening";
+            trendClass = "trend-up";
+          } else if (data.proba <= 0.4) {
+            trendIcon = "📉 Weakening";
+            trendClass = "trend-down";
+          } else {
+            trendIcon = "➡️ Stable";
+            trendClass = "trend-neutral";
+          }
+
+          card.innerHTML = `
+            <div class="pulse-ticker">${ticker}</div>
+            <div class="pulse-signal">${act.text}</div>
+            <div class="pulse-proba">${probaPct}%</div>
+            <div class="pulse-trend ${trendClass}">${trendIcon}</div>
+          `;
+          
+          card.addEventListener("click", () => {
+            document.getElementById("tickerInput").value = ticker;
+            loadSignalAndCharts(ticker);
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+          });
+
+          container.appendChild(card);
+        } catch (e) {
+          console.error("Pulse error", ticker, e);
+        }
+      }
     }
 
     async function loadWatchlist() {
@@ -1508,7 +2047,6 @@
       renderTradeHistory();
     });
 
-    // Alerts
     const ALERTS_KEY = "price_alerts";
 
     function loadAlertsFromStorage() {
@@ -1619,8 +2157,7 @@
       }, 5000);
     }
 
-    // Trade History
-    function renderTradeHistory() {
+        function renderTradeHistory() {
       const tbody = document.querySelector("#historyTable tbody");
       const emptyEl = document.getElementById("historyEmpty");
       const history = loadHistoryFromStorage();
@@ -1684,6 +2221,7 @@
 
     function init() {
       setupNotes();
+      loadLiveMarketPulse(); // FEATURE 1: Load hero pulse on startup
       loadWatchlist();
       renderPortfolioTable();
       refreshPortfolioSignals();
