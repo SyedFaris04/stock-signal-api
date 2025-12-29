@@ -78,7 +78,7 @@ class SignalResponse(BaseModel):
     proba: float
     signal: int
     action: str
-    explanation: str  # NEW
+    explanation: str
 
 
 app = FastAPI(title="Stock Signal API")
@@ -230,6 +230,78 @@ def get_signal(req: SignalRequest):
     )
 
 
+# ---- NEW: GET /predict endpoint for dashboard ----
+@app.get("/predict")
+def get_signal_get(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
+    """
+    GET version of /signal for easier dashboard integration.
+    Returns prediction for a given ticker.
+    """
+    window = last_lookback_window(ticker)
+    if window is None:
+        return {
+            "ticker": ticker.upper(),
+            "last_date": "N/A",
+            "last_price": 0.0,
+            "probability": 0.0,
+            "signal": 0,
+            "action": "NO_DATA",
+            "explanation": "Not enough history to compute indicators.",
+            "recent_mae": None
+        }
+
+    X_tab = scaler.transform(window[FEATURES])
+    proba_rf = rf_model.predict_proba(
+        X_tab[-1:].astype(np.float32)
+    )[:, 1][0]
+
+    X_seq = window[FEATURES].values.astype(np.float32)[np.newaxis, ...]
+    proba_lstm = float(
+        lstm_model.predict(X_seq, verbose=0).ravel()[0]
+    )
+
+    proba_ens = 0.5 * proba_rf + 0.5 * proba_lstm
+    signal = int(proba_ens >= 0.5)
+    action = action_from_signal(signal)
+
+    last_row = window.iloc[-1]
+    explanation = build_explanation(last_row)
+    
+    # Calculate recent MAE for confidence
+    future_price = window["price"].shift(-5)
+    actual_ret_5d = (future_price / window["price"] - 1.0) * 100.0
+    actual_label = (actual_ret_5d > 0).astype(float)
+    
+    mask = ~actual_label.isna()
+    if mask.sum() > 0:
+        recent_window = min(20, mask.sum())
+        X_tab_all = scaler.transform(window[FEATURES])
+        proba_rf_all = rf_model.predict_proba(X_tab_all.astype(np.float32))[:, 1]
+        
+        # For LSTM, use the same sequence approach
+        proba_lstm_single = float(lstm_model.predict(X_seq, verbose=0).ravel()[0])
+        proba_lstm_all = np.full(len(window), proba_lstm_single)
+        
+        proba_ens_all = 0.5 * proba_rf_all + 0.5 * proba_lstm_all
+        
+        recent_proba = proba_ens_all[mask][-recent_window:]
+        recent_label = actual_label[mask].iloc[-recent_window:]
+        recent_mae = float(np.abs(recent_label.values - recent_proba).mean())
+    else:
+        recent_mae = None
+
+    return {
+        "ticker": ticker.upper(),
+        "last_date": str(last_row.name.date()),
+        "last_price": float(last_row["price"]),
+        "probability": float(proba_ens),
+        "signal": signal,
+        "action": action,
+        "explanation": explanation,
+        "recent_mae": recent_mae
+    }
+
+
 # ---- history endpoint for charts ----
 @app.get("/history")
 def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
@@ -242,6 +314,7 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
     if window is None:
         return {
             "ticker": ticker.upper(),
+            "history": [],
             "dates": [],
             "open": [],
             "high": [],
@@ -280,8 +353,21 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
     actual_label = (actual_ret_5d > 0).astype(float)
     error = (actual_label - proba_ens_all).abs()
 
+    # Build history array for dashboard
+    history_data = []
+    for i in range(len(window)):
+        fp = future_price.iloc[i]
+        history_data.append({
+            "date": str(window.index[i].date()),
+            "price": float(window["price"].iloc[i]),
+            "probability": float(proba_ens_all[i]),
+            "action": "BUY" if proba_ens_all[i] >= 0.5 else "NO_POSITION",
+            "future_price": float(fp) if not np.isnan(fp) else None
+        })
+
     return {
         "ticker": ticker.upper(),
+        "history": history_data,
         "dates": [str(idx.date()) for idx in window.index],
         "open": window["Open"].round(2).tolist(),
         "high": window["High"].round(2).tolist(),
@@ -296,7 +382,7 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
     }
 
 
-# ---- NEW: metrics endpoint ----
+# ---- metrics endpoint ----
 @app.get("/metrics")
 def get_metrics(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
     """
