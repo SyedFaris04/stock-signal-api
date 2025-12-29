@@ -1263,17 +1263,21 @@
 
     let currentUser = null;
 
-    // Check authentication on page load
-    auth.onAuthStateChanged((user) => {
-      if (!user) {
-        // Not logged in, redirect to login page
-        window.location.href = 'index.html';
-      } else {
-        currentUser = user;
-        loadUserData();
-        updateUserInfo();
-      }
+ // Check authentication on page load
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    // Not logged in, redirect to login page
+    window.location.href = 'index.html';
+  } else {
+    currentUser = user;
+    loadUserData().then(() => {
+      updateUserInfo();
+      // Initialize dashboard after user data is loaded
+      init();
     });
+  }
+});
+
 
     // Update user info in header
     function updateUserInfo() {
@@ -1301,51 +1305,52 @@
       }
     }
 
-    // Load user data from Firestore
-    async function loadUserData() {
-      if (!currentUser) return;
+// Load user data from Firestore
+async function loadUserData() {
+  if (!currentUser) return;
 
-      try {
-        const userDoc = await db.collection('users').doc(currentUser.uid).get();
-        
-        if (userDoc.exists) {
-          const userData = userDoc.data();
-          
-          // Load portfolio
-          if (userData.portfolio) {
-            localStorage.setItem(PF_KEY, JSON.stringify(userData.portfolio));
-          }
-          
-          // Load watchlist
-          if (userData.watchlist) {
-            localStorage.setItem('watchlist', JSON.stringify(userData.watchlist));
-          }
-          
-          // Load alerts
-          if (userData.alerts) {
-            localStorage.setItem(ALERT_KEY, JSON.stringify(userData.alerts));
-          }
-          
-          // Load notes
-          if (userData.notes) {
-            localStorage.setItem('notes', JSON.stringify(userData.notes));
-          }
-          
-          // Load trade history
-          if (userData.tradeHistory) {
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(userData.tradeHistory));
-          }
-
-          // Render all sections after data is loaded
-          renderPortfolioTable();
-          renderAlertTable();
-          renderHistoryTable();
-          displayNotes();
-        }
-      } catch (error) {
-        console.error('Error loading user data:', error);
+  try {
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      
+      // Load portfolio
+      if (userData.portfolio) {
+        localStorage.setItem(PF_KEY, JSON.stringify(userData.portfolio));
       }
+      
+      // Load watchlist
+      if (userData.watchlist) {
+        localStorage.setItem('watchlist', JSON.stringify(userData.watchlist));
+      }
+      
+      // Load alerts
+      if (userData.alerts) {
+        localStorage.setItem(ALERT_KEY, JSON.stringify(userData.alerts));
+      }
+      
+      // Load notes
+      if (userData.notes) {
+        localStorage.setItem('notes', JSON.stringify(userData.notes));
+      }
+      
+      // Load trade history
+      if (userData.tradeHistory) {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(userData.tradeHistory));
+      }
+
+      // Don't render here - let init() handle it
     }
+    
+    // Return promise to indicate completion
+    return Promise.resolve();
+  } catch (error) {
+    console.error('Error loading user data:', error);
+    return Promise.resolve(); // Still resolve to allow init to run
+  }
+}
+
 
     // Save data to Firestore
     async function saveToFirestore(field, data) {
@@ -2239,9 +2244,11 @@
       }, 60000);
     }
 
-    // Init will be called after auth check
-    setTimeout(init, 1000);
+  // Don't call init with setTimeout - let auth handle it
+// The init() call is now inside the auth check
+
   </script>
 </body>
 </html>
+
 
