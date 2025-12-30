@@ -59,12 +59,12 @@ WEIGHT_LSTM = 0.7 # LSTM weight
 
 # ---- feature helpers ----
 def compute_rsi(series, window=14):
-"""Relative Strength Index"""
-delta = series.diff()
-gain = delta.clip(lower=0).rolling(window).mean()
-loss = (-delta.clip(upper=0)).rolling(window).mean()
-rs = gain / (loss + 1e-9)
-return 100 - (100 / (1 + rs))
+    """Relative Strength Index"""
+    delta = series.diff()
+    gain = delta.clip(lower=0).rolling(window).mean()
+    loss = (-delta.clip(upper=0)).rolling(window).mean()
+    rs = gain / (loss + 1e-9)
+    return 100 - (100 / (1 + rs))
 
 
 def compute_macd(series, fast=12, slow=26, signal=9):
