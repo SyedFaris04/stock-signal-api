@@ -717,15 +717,17 @@
   <script>
     const API_BASE = "https://stock-signal-api.onrender.com";
 
-    // Firebase Configuration - REPLACE WITH YOUR CONFIG
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
+   // Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyAFVns8fWpaD-uwaRDskVM4QPXTPfIiahc",
+  authDomain: "stock-signal-api-d0291.firebaseapp.com",
+  projectId: "stock-signal-api-d0291",
+  storageBucket: "stock-signal-api-d0291.firebasestorage.app",
+  messagingSenderId: "498426661242",
+  appId: "1:498426661242:web:033b8af321d874e99aaec3",
+  measurementId: "G-M23P4FNF61"
+};
+
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -744,16 +746,47 @@
     const STOCK_POOL = ["AAPL", "MSFT", "GOOG", "TSLA", "AMZN", "NVDA", "META", "JPM"];
 
     // Auth check
-    auth.onAuthStateChanged((user) => {
-      if (!user) {
-        window.location.href = 'index.html';
-      } else {
-        currentUser = user;
+// Auth check with better error handling
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    console.log('No user authenticated, redirecting to login...');
+    alert('Please log in first to access the game');
+    window.location.href = 'index.html';
+  } else {
+    console.log('User authenticated:', user.email);
+    currentUser = user;
+    
+    // Initialize user document if it doesn't exist
+    db.collection('users').doc(user.uid).get()
+      .then((doc) => {
+        if (!doc.exists) {
+          // Create initial user document
+          return db.collection('users').doc(user.uid).set({
+            email: user.email,
+            displayName: user.displayName || user.email.split('@')[0],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            gameState: {
+              coins: 0,
+              correct: 0,
+              total: 0,
+              streak: 0,
+              bestStreak: 0
+            }
+          });
+        }
+      })
+      .then(() => {
         loadGameState();
         loadLeaderboard();
         startNewChallenge();
-      }
-    });
+      })
+      .catch((error) => {
+        console.error('Error initializing user:', error);
+        alert('Error loading game. Please try again.');
+      });
+  }
+});
+
 
     // Load game state from Firestore
     async function loadGameState() {
@@ -1094,3 +1127,4 @@
   </script>
 </body>
 </html>
+
