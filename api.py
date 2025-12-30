@@ -1,530 +1,627 @@
-# api.py – Honest 6‑model ensemble API for your website
-
-from typing import Any, Dict, List
-from datetime import datetime, timedelta
-import os
-
+from typing import Any, Dict
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import numpy as np
 import pandas as pd
 import yfinance as yf
 import joblib
 import tensorflow as tf
+from datetime import datetime, timedelta
 
-from fastapi import FastAPI, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+# load saved models
+scaler = joblib.load("scaler.pkl")
+rf_model = joblib.load("rf_model.pkl")
+lstm_model = tf.keras.models.load_model("lstm_model.h5")
 
-# =========================================================
-# 1. CUSTOM LAYERS (NEEDED TO LOAD SAVED MODELS)
-# =========================================================
-
-class AttentionLayer(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def build(self, input_shape):
-        self.W = self.add_weight(
-            name="attention_weight",
-            shape=(input_shape[-1], 1),
-            initializer="glorot_uniform",
-            trainable=True,
-        )
-        self.b = self.add_weight(
-            name="attention_bias",
-            shape=(input_shape[1], 1),
-            initializer="zeros",
-            trainable=True,
-        )
-        super().build(input_shape)
-
-    def call(self, x):
-        import tensorflow.keras.backend as K
-
-        e = K.tanh(K.dot(x, self.W) + self.b)
-        a = K.softmax(e, axis=1)
-        output = x * a
-        return K.sum(output, axis=1)
-
-    def get_config(self):
-        base_config = super().get_config()
-        return base_config
-
-
-class PositionalEncoding(tf.keras.layers.Layer):
-    def __init__(self, d_model, max_len=5000, **kwargs):
-        super().__init__(**kwargs)
-        self.d_model = d_model
-        self.max_len = max_len
-
-        position = np.arange(max_len)[:, np.newaxis]
-        div_term = np.exp(np.arange(0, d_model, 2) * -(np.log(10000.0) / d_model))
-
-        pe = np.zeros((max_len, d_model))
-        pe[:, 0::2] = np.sin(position * div_term)
-        pe[:, 1::2] = np.cos(position * div_term)
-
-        self.pos_encoding = tf.constant(pe[np.newaxis, :, :], dtype=tf.float32)
-
-    def call(self, inputs):
-        seq_len = tf.shape(inputs)[1]
-        return inputs + self.pos_encoding[:, :seq_len, :]
-
-    def get_config(self):
-        base_config = super().get_config()
-        base_config.update({
-            "d_model": self.d_model,
-            "max_len": self.max_len,
-        })
-        return base_config
-
-# =========================================================
-# 2. LOAD MODELS, SCALERS, METADATA
-# =========================================================
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-def load_pickle(name: str):
-    return joblib.load(os.path.join(BASE_DIR, name))
-
-scaler = load_pickle("scaler.pkl")
-scaler_lstm = load_pickle("scaler_lstm.pkl")
-
-rf_model = load_pickle("rf_model.pkl")
-logreg_model = load_pickle("logreg_model.pkl")
-xgb_model = load_pickle("xgb_model.pkl")
-lgb_model = load_pickle("lgb_model.pkl")
-
-lstm_model = tf.keras.models.load_model(
-    os.path.join(BASE_DIR, "lstm_attention_model.keras"),
-    compile=False,
-    custom_objects={"AttentionLayer": AttentionLayer},
-)
-
-transformer_model = tf.keras.models.load_model(
-    os.path.join(BASE_DIR, "transformer_model.keras"),
-    compile=False,
-    custom_objects={"PositionalEncoding": PositionalEncoding},
-)
-
-FEATURES: List[str] = load_pickle("features.pkl")
-ensemble_weights: Dict[str, float] = load_pickle("ensemble_weights.pkl")
-metadata: Dict[str, Any] = load_pickle("model_metadata.pkl")
-
-LOOKBACK_DAYS: int = metadata.get("lookback_days", 60)
-HORIZON: int = metadata.get("horizon", 5)
-
-W_LSTM = ensemble_weights["lstm_weight"]
-W_TRANS = ensemble_weights["transformer_weight"]
-W_RF = ensemble_weights["rf_weight"]
-W_LOG = ensemble_weights["logreg_weight"]
-W_XGB = ensemble_weights["xgb_weight"]
-W_LGB = ensemble_weights["lgb_weight"]
-
-ACTIVE_FEATURES = FEATURES  # full feature list used at training time
-
-# =========================================================
-# 3. FASTAPI APP + CORS
-# =========================================================
-
-app = FastAPI(title="Honest Stock Signal API")
-
-origins = [
-    "https://syedfaris04.github.io",
-    "https://syedfaris04.github.io/",
+# Original features (preserved)
+FEATURES = [
+"ret_1d", "ret_5d", "ret_20d",
+"vol_20d",
+"ma_10", "ma_20", "ma_ratio",
+"rsi",
+"macd", "macd_signal", "macd_hist",
+"bb_up", "bb_mid", "bb_low", "bb_width",
+"atr_14",
+"volume_z",
 ]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Enhanced features (optional - only use if you retrain with these)
+ENHANCED_FEATURES = [
+"ret_1d", "ret_5d", "ret_20d",
+"vol_20d",
+"ma_10", "ma_20", "ma_ratio",
+"rsi",
+"macd", "macd_signal", "macd_hist",
+"bb_up", "bb_mid", "bb_low", "bb_width",
+"atr_14",
+"volume_z",
+# New features for better prediction
+"stoch_k", "stoch_d",
+"roc_10",
+"momentum_10",
+"williams_r",
+"volume_ratio",
+"dist_from_ma10", "dist_from_ma20",
+"ma_slope_10",
+]
 
-# =========================================================
-# 4. FEATURE ENGINEERING (MATCHES TRAINING)
-# =========================================================
+# Use original features by default (change to ENHANCED_FEATURES if you retrain)
+ACTIVE_FEATURES = FEATURES
 
+LOOKBACK_DAYS = 60
+
+# Ensemble weights - optimized for better performance
+# LSTM is typically better at time series patterns
+WEIGHT_RF = 0.3 # Random Forest weight
+WEIGHT_LSTM = 0.7 # LSTM weight
+
+
+# ---- feature helpers ----
 def compute_rsi(series, window=14):
-    delta = series.diff()
-    gain  = delta.clip(lower=0).rolling(window).mean()
-    loss  = (-delta.clip(upper=0)).rolling(window).mean()
-    rs    = gain / (loss + 1e-9)
-    return 100 - (100 / (1 + rs))
+"""Relative Strength Index"""
+delta = series.diff()
+gain = delta.clip(lower=0).rolling(window).mean()
+loss = (-delta.clip(upper=0)).rolling(window).mean()
+rs = gain / (loss + 1e-9)
+return 100 - (100 / (1 + rs))
+
 
 def compute_macd(series, fast=12, slow=26, signal=9):
-    ema_fast = series.ewm(span=fast, adjust=False).mean()
-    ema_slow = series.ewm(span=slow, adjust=False).mean()
-    macd = ema_fast - ema_slow
-    macd_signal = macd.ewm(span=signal, adjust=False).mean()
-    macd_hist = macd - macd_signal
-    return macd, macd_signal, macd_hist
+"""Moving Average Convergence Divergence"""
+ema_fast = series.ewm(span=fast, adjust=False).mean()
+ema_slow = series.ewm(span=slow, adjust=False).mean()
+macd = ema_fast - ema_slow
+macd_signal = macd.ewm(span=signal, adjust=False).mean()
+macd_hist = macd - macd_signal
+return macd, macd_signal, macd_hist
+
 
 def compute_bollinger(series, window=20, num_std=2):
-    mid = series.rolling(window).mean()
-    std = series.rolling(window).std()
-    upper = mid + num_std * std
-    lower = mid - num_std * std
-    width = (upper - lower) / (mid + 1e-9)
-    return upper, mid, lower, width
+"""Bollinger Bands"""
+mid = series.rolling(window).mean()
+std = series.rolling(window).std()
+upper = mid + num_std * std
+lower = mid - num_std * std
+width = (upper - lower) / (mid + 1e-9)
+return upper, mid, lower, width
+
 
 def compute_atr(df, window=14):
-    high = df["High"]
-    low  = df["Low"]
-    close= df["price"]
-    prev_close = close.shift(1)
-    tr1 = high - low
-    tr2 = (high - prev_close).abs()
-    tr3 = (low - prev_close).abs()
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    return tr.rolling(window).mean()
+"""Average True Range"""
+high = df["High"]
+low = df["Low"]
+close = df["price"]
+prev_close = close.shift(1)
+tr1 = high - low
+tr2 = (high - prev_close).abs()
+tr3 = (low - prev_close).abs()
+tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+return tr.rolling(window).mean()
 
-def compute_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
-    df['momentum_3d'] = df['price'].pct_change(3)
-    df['momentum_10d'] = df['price'].pct_change(10)
-    df['momentum_30d'] = df['price'].pct_change(30)
-    df['accel_5d'] = df['price'].pct_change(5) - df['price'].pct_change(5).shift(5)
 
-    df['vol_5d'] = df['ret_1d'].rolling(5).std()
-    df['vol_ratio'] = df['vol_5d'] / (df['vol_20d'] + 1e-9)
+def compute_stochastic(df, window=14):
+"""Stochastic Oscillator (%K and %D)"""
+low_min = df['Low'].rolling(window=window).min()
+high_max = df['High'].rolling(window=window).max()
+stoch_k = 100 * (df['price'] - low_min) / (high_max - low_min + 1e-9)
+stoch_d = stoch_k.rolling(window=3).mean()
+return stoch_k, stoch_d
 
-    df['hl_spread'] = (df['High'] - df['Low']) / (df['Close'] + 1e-9)
-    df['hl_ma'] = df['hl_spread'].rolling(10).mean()
 
-    df['volume_ma_10'] = df['Volume'].rolling(10).mean()
-    df['volume_ma_20'] = df['Volume'].rolling(20).mean()
-    df['volume_ratio'] = df['Volume'] / (df['volume_ma_20'] + 1e-9)
-    df['volume_price_trend'] = df['Volume'] * df['ret_1d']
-    df['volume_surge'] = (df['Volume'] > df['volume_ma_20'] * 2).astype(int)
+def compute_williams_r(df, window=14):
+"""Williams %R Momentum Indicator"""
+high_max = df['High'].rolling(window=window).max()
+low_min = df['Low'].rolling(window=window).min()
+williams_r = -100 * (high_max - df['price']) / (high_max - low_min + 1e-9)
+return williams_r
 
-    df['gap'] = (df['Open'] - df['Close'].shift(1)) / (df['Close'].shift(1) + 1e-9)
-    df['gap_ma'] = df['gap'].rolling(5).mean()
 
-    df['true_range'] = df[['High', 'Low']].apply(lambda x: x['High'] - x['Low'], axis=1)
-    df['range_ma'] = df['true_range'].rolling(10).mean()
-
-    low_14 = df['Low'].rolling(14).min()
-    high_14 = df['High'].rolling(14).max()
-    df['stoch_k'] = 100 * (df['Close'] - low_14) / (high_14 - low_14 + 1e-9)
-    df['stoch_d'] = df['stoch_k'].rolling(3).mean()
-    df['williams_r'] = -100 * (high_14 - df['Close']) / (high_14 - low_14 + 1e-9)
-
-    typical_price = (df['High'] + df['Low'] + df['Close']) / 3
-    sma_tp = typical_price.rolling(20).mean()
-    mad = typical_price.rolling(20).apply(lambda x: np.abs(x - x.mean()).mean())
-    df['cci'] = (typical_price - sma_tp) / (0.015 * mad + 1e-9)
-
-    raw_money_flow = typical_price * df['Volume']
-    positive_flow = raw_money_flow.where(typical_price > typical_price.shift(1), 0)
-    negative_flow = raw_money_flow.where(typical_price < typical_price.shift(1), 0)
-    positive_mf = positive_flow.rolling(14).sum()
-    negative_mf = negative_flow.rolling(14).sum()
-    mfi_ratio = positive_mf / (negative_mf + 1e-9)
-    df['mfi'] = 100 - (100 / (1 + mfi_ratio))
-
-    df['ma_50'] = df['price'].rolling(50).mean()
-    df['price_distance_ma20'] = (df['price'] - df['ma_20']) / (df['ma_20'] + 1e-9)
-    df['price_distance_ma50'] = (df['price'] - df['ma_50']) / (df['ma_50'] + 1e-9)
-    df['price_trend_strength'] = df['ret_1d'].rolling(10).mean() / (df['vol_5d'] + 1e-9)
-
-    df['volatility_rank'] = df['vol_20d'].rolling(252).apply(
-        lambda x: (x.iloc[-1] <= x).sum() / len(x) if len(x) > 0 else 0.5
-    )
-
-    df['returns_skew'] = df['ret_1d'].rolling(20).skew()
-    df['returns_kurt'] = df['ret_1d'].rolling(20).kurt()
-
-    return df
-
-def last_lookback_window(ticker: str) -> pd.DataFrame | None:
-    end = datetime.utcnow()
-    start = end - timedelta(days=365 * 3)
-
-    df = yf.download(ticker, start=start, end=end, progress=False, auto_adjust=True)
-    if df is None or df.empty:
-        return None
-
-    # Flatten multiindex from yfinance if present
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-
-    df = df[["Open", "High", "Low", "Close", "Volume"]].copy()
-    df["price"] = df["Close"]
-
-    df["ret_1d"]  = df["price"].pct_change()
-    df["ret_5d"]  = df["price"].pct_change(5)
-    df["ret_20d"] = df["price"].pct_change(20)
-    df["vol_20d"] = df["ret_1d"].rolling(20).std()
-
-    df["ma_10"]   = df["price"].rolling(10).mean()
-    df["ma_20"]   = df["price"].rolling(20).mean()
-    df["ma_ratio"]= df["ma_10"] / (df["ma_20"] + 1e-9)
-
-    df["rsi"] = compute_rsi(df["price"], window=14)
-
-    macd, macd_sig, macd_hist = compute_macd(df["price"])
-    df["macd"] = macd
-    df["macd_signal"] = macd_sig
-    df["macd_hist"] = macd_hist
-
-    bb_up, bb_mid, bb_low, bb_width = compute_bollinger(df["price"])
-    df["bb_up"] = bb_up
-    df["bb_mid"] = bb_mid
-    df["bb_low"] = bb_low
-    df["bb_width"] = bb_width
-
-    df["atr_14"] = compute_atr(df, window=14)
-
-    df["volume_z"] = (df["Volume"] - df["Volume"].rolling(20).mean()) / (
-        df["Volume"].rolling(20).std() + 1e-9
-    )
-
-    df = compute_advanced_features(df)
-
-    # Ensure macro features exist so scaler feature names match training
-    for col in ["spy_ret", "spy_corr", "vix", "vix_change"]:
-        if col not in df.columns:
-            df[col] = 0.0
-
-    df = df.dropna()
-    if len(df) < LOOKBACK_DAYS:
-        return None
-
-    return df.iloc[-LOOKBACK_DAYS:]
-
-# =========================================================
-# 5. SIGNAL / EXPLANATION
-# =========================================================
-
-def action_from_proba(p: float) -> str:
-    if p >= 0.55:
-        return "BUY"
-    elif p <= 0.45:
-        return "NO_POSITION"
-    else:
-        return "HOLD"
-
-def build_explanation(row: pd.Series) -> str:
-    msgs = []
-    price = float(row.get("price", np.nan))
-
-    rsi = float(row.get("rsi", np.nan))
-    if not np.isnan(rsi):
-        if rsi > 70:
-            msgs.append(f"RSI {rsi:.1f} suggests overbought conditions.")
-        elif rsi < 30:
-            msgs.append(f"RSI {rsi:.1f} suggests oversold conditions.")
-        else:
-            msgs.append(f"RSI {rsi:.1f} shows neutral momentum.")
-
-    ma10 = float(row.get("ma_10", np.nan))
-    ma20 = float(row.get("ma_20", np.nan))
-    if not np.isnan(ma10) and not np.isnan(ma20) and not np.isnan(price):
-        if ma10 > ma20 and price > ma10:
-            msgs.append("Price is above both 10‑day and 20‑day moving averages (bullish).")
-        elif ma10 < ma20 and price < ma10:
-            msgs.append("Price is below both moving averages (bearish).")
-
-    vol20 = float(row.get("vol_20d", np.nan))
-    if not np.isnan(vol20):
-        if vol20 > 0.03:
-            msgs.append("Volatility is high; expect larger price swings.")
-        elif vol20 < 0.015:
-            msgs.append("Volatility is low; price moves are more stable.")
-
-    macd_val = float(row.get("macd", np.nan))
-    macd_sig = float(row.get("macd_signal", np.nan))
-    if not np.isnan(macd_val) and not np.isnan(macd_sig):
-        if macd_val > macd_sig:
-            msgs.append("MACD is above its signal line (bullish momentum).")
-        elif macd_val < macd_sig:
-            msgs.append("MACD is below its signal line (bearish momentum).")
-
-    bb_up = float(row.get("bb_up", np.nan))
-    bb_low = float(row.get("bb_low", np.nan))
-    if not np.isnan(bb_up) and not np.isnan(bb_low) and not np.isnan(price):
-        if price > bb_up:
-            msgs.append("Price is above the upper Bollinger Band (overbought risk).")
-        elif price < bb_low:
-            msgs.append("Price is below the lower Bollinger Band (oversold opportunity).")
-
-    if not msgs:
-        return "Indicators are mixed; consider additional factors before trading."
-    return " ".join(msgs)
-
-# =========================================================
-# 6. ENSEMBLE PREDICTION
-# =========================================================
-
-def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
-    X_tab_all = scaler.transform(window[ACTIVE_FEATURES])
-    x_last = X_tab_all[-1:].astype(np.float32)
-
-    p_rf  = float(rf_model.predict_proba(x_last)[:, 1][0])
-    p_log = float(logreg_model.predict_proba(x_last)[:, 1][0])
-    p_xgb = float(xgb_model.predict_proba(x_last)[:, 1][0])
-    p_lgb = float(lgb_model.predict_proba(x_last)[:, 1][0])
-
-    seq_raw = window[ACTIVE_FEATURES].values.astype(np.float32)
-    seq_scaled = scaler_lstm.transform(seq_raw)
-    X_seq = seq_scaled[np.newaxis, ...]
-
-    p_lstm = float(lstm_model.predict(X_seq, verbose=0).ravel()[0])
-    p_trans = float(transformer_model.predict(X_seq, verbose=0).ravel()[0])
-
-    proba_ens = (
-        W_LSTM * p_lstm +
-        W_TRANS * p_trans +
-        W_RF * p_rf +
-        W_LOG * p_log +
-        W_XGB * p_xgb +
-        W_LGB * p_lgb
-    )
-
-    return {
-        "ensemble": proba_ens,
-        "lstm": p_lstm,
-        "transformer": p_trans,
-        "rf": p_rf,
-        "logreg": p_log,
-        "xgb": p_xgb,
-        "lgb": p_lgb,
-    }
-
-# =========================================================
-# 7. ENDPOINTS
-# =========================================================
-
+# ---- request/response models ----
 class SignalRequest(BaseModel):
-    ticker: str
+ticker: str
+
 
 class SignalResponse(BaseModel):
-    ticker: str
-    date: str
-    price: float
-    proba: float
-    action: str
-    explanation: str
+ticker: str
+date: str
+price: float
+proba: float
+signal: int
+action: str
+explanation: str
+
+
+app = FastAPI(title="Stock Signal API - Enhanced")
+
+# ---- CORS configuration ----
+app.add_middleware(
+CORSMiddleware,
+allow_origins=["*"],
+allow_credentials=True,
+allow_methods=["*"],
+allow_headers=["*"],
+)
+
+
+def last_lookback_window(ticker: str, enhanced=False):
+"""
+Fetch and compute technical indicators for a ticker.
+
+Args:
+ticker: Stock ticker symbol
+enhanced: If True, compute additional features (requires model retraining)
+
+Returns:
+DataFrame with computed features or None if insufficient data
+"""
+end = datetime.utcnow()
+start = end - timedelta(days=730) # 2 years for better indicator calculation
+
+df = yf.download(ticker, start=start, end=end, progress=False)
+if df is None or df.empty:
+return None
+
+if isinstance(df.columns, pd.MultiIndex):
+df.columns = df.columns.get_level_values(0)
+
+df = df[["Open", "High", "Low", "Close", "Volume"]].copy()
+df["price"] = df["Close"]
+
+# Basic returns and volatility (PRESERVED)
+df["ret_1d"] = df["price"].pct_change()
+df["ret_5d"] = df["price"].pct_change(5)
+df["ret_20d"] = df["price"].pct_change(20)
+df["vol_20d"] = df["ret_1d"].rolling(20).std()
+
+# Moving averages (PRESERVED)
+df["ma_10"] = df["price"].rolling(10).mean()
+df["ma_20"] = df["price"].rolling(20).mean()
+df["ma_ratio"] = df["ma_10"] / (df["ma_20"] + 1e-9)
+
+# RSI (PRESERVED)
+df["rsi"] = compute_rsi(df["price"], window=14)
+
+# MACD (PRESERVED)
+macd, macd_sig, macd_hist = compute_macd(df["price"])
+df["macd"] = macd
+df["macd_signal"] = macd_sig
+df["macd_hist"] = macd_hist
+
+# Bollinger Bands (PRESERVED)
+bb_up, bb_mid, bb_low, bb_width = compute_bollinger(df["price"])
+df["bb_up"] = bb_up
+df["bb_mid"] = bb_mid
+df["bb_low"] = bb_low
+df["bb_width"] = bb_width
+
+# ATR (PRESERVED)
+df["atr_14"] = compute_atr(df, window=14)
+
+# Volume Z-score (PRESERVED)
+df["volume_z"] = (df["Volume"] - df["Volume"].rolling(20).mean()) / (
+df["Volume"].rolling(20).std() + 1e-9
+)
+
+# Enhanced features (NEW - only computed if enhanced=True)
+if enhanced:
+# Stochastic Oscillator
+stoch_k, stoch_d = compute_stochastic(df, window=14)
+df["stoch_k"] = stoch_k
+df["stoch_d"] = stoch_d
+
+# Rate of Change
+df["roc_10"] = ((df["price"] - df["price"].shift(10)) / (df["price"].shift(10) + 1e-9)) * 100
+
+# Momentum
+df["momentum_10"] = df["price"] - df["price"].shift(10)
+
+# Williams %R
+df["williams_r"] = compute_williams_r(df, window=14)
+
+# Volume ratio
+df["volume_ma_20"] = df["Volume"].rolling(20).mean()
+df["volume_ratio"] = df["Volume"] / (df["volume_ma_20"] + 1e-9)
+
+# Distance from moving averages
+df["dist_from_ma10"] = (df["price"] - df["ma_10"]) / (df["ma_10"] + 1e-9)
+df["dist_from_ma20"] = (df["price"] - df["ma_20"]) / (df["ma_20"] + 1e-9)
+
+# MA slope (trend strength)
+df["ma_slope_10"] = df["ma_10"].diff(5) / (df["ma_10"] + 1e-9)
+
+df = df.dropna()
+if len(df) < LOOKBACK_DAYS:
+return None
+
+return df.iloc[-LOOKBACK_DAYS:]
+
+
+def action_from_signal(sig: int) -> str:
+return "BUY" if sig == 1 else "NO_POSITION"
+
+
+def build_explanation(row: pd.Series) -> str:
+"""
+Generate a human-readable explanation based on technical indicators.
+Enhanced with additional context.
+"""
+msgs = []
+
+# RSI Analysis
+rsi = float(row.get("rsi", np.nan))
+if not np.isnan(rsi):
+if rsi > 70:
+msgs.append(f"RSI is {rsi:.1f}, indicating overbought conditions - caution advised.")
+elif rsi < 30:
+msgs.append(f"RSI is {rsi:.1f}, indicating oversold conditions - potential buying opportunity.")
+else:
+msgs.append(f"RSI is {rsi:.1f}, showing neutral momentum.")
+
+# Moving Average Trend
+ma10 = float(row.get("ma_10", np.nan))
+ma20 = float(row.get("ma_20", np.nan))
+price = float(row.get("price", np.nan))
+
+if not np.isnan(ma10) and not np.isnan(ma20) and not np.isnan(price):
+if ma10 > ma20 and price > ma10:
+msgs.append("Strong bullish trend: price above both 10-day and 20-day moving averages.")
+elif ma10 > ma20:
+msgs.append("Short-term uptrend detected with 10-day MA above 20-day MA.")
+elif ma10 < ma20 and price < ma10:
+msgs.append("Strong bearish trend: price below both moving averages.")
+elif ma10 < ma20:
+msgs.append("Short-term downtrend with 10-day MA below 20-day MA.")
+
+# Volatility Assessment
+vol20 = float(row.get("vol_20d", np.nan))
+if not np.isnan(vol20):
+if vol20 > 0.03:
+msgs.append("High volatility detected - larger price swings expected, higher risk.")
+elif vol20 < 0.015:
+msgs.append("Low volatility environment - more stable price action.")
+
+# MACD Momentum
+macd_val = float(row.get("macd", np.nan))
+macd_sig = float(row.get("macd_signal", np.nan))
+if not np.isnan(macd_val) and not np.isnan(macd_sig):
+if macd_val > macd_sig and macd_val > 0:
+msgs.append("MACD shows strong bullish momentum with positive crossover.")
+elif macd_val > macd_sig:
+msgs.append("MACD above signal line - bullish momentum building.")
+elif macd_val < macd_sig and macd_val < 0:
+msgs.append("MACD shows strong bearish momentum with negative crossover.")
+elif macd_val < macd_sig:
+msgs.append("MACD below signal line - bearish momentum detected.")
+
+# Bollinger Bands Position
+bb_up = float(row.get("bb_up", np.nan))
+bb_low = float(row.get("bb_low", np.nan))
+if not np.isnan(bb_up) and not np.isnan(bb_low) and not np.isnan(price):
+if price > bb_up:
+msgs.append("Price breaking above upper Bollinger Band - potential overbought.")
+elif price < bb_low:
+msgs.append("Price breaking below lower Bollinger Band - potential oversold.")
+
+if not msgs:
+return "Technical indicators show mixed signals. Consider multiple factors before trading."
+
+return " ".join(msgs)
+
 
 @app.post("/signal", response_model=SignalResponse)
-def post_signal(req: SignalRequest):
-    window = last_lookback_window(req.ticker)
-    if window is None:
-        return SignalResponse(
-            ticker=req.ticker.upper(),
-            date="N/A",
-            price=0.0,
-            proba=0.0,
-            action="NO_DATA",
-            explanation="Not enough historical data to compute indicators.",
-        )
+def get_signal(req: SignalRequest):
+"""
+POST endpoint for signal prediction (original format).
+"""
+window = last_lookback_window(req.ticker, enhanced=False)
+if window is None:
+return SignalResponse(
+ticker=req.ticker.upper(),
+date="N/A",
+price=0.0,
+proba=0.0,
+signal=0,
+action="NO_DATA",
+explanation="Not enough history to compute indicators.",
+)
 
-    probs = ensemble_proba_for_window(window)
-    proba = float(probs["ensemble"])
-    last_row = window.iloc[-1]
+X_tab = scaler.transform(window[ACTIVE_FEATURES])
+proba_rf = rf_model.predict_proba(
+X_tab[-1:].astype(np.float32)
+)[:, 1][0]
 
-    return SignalResponse(
-        ticker=req.ticker.upper(),
-        date=str(last_row.name.date()),
-        price=float(last_row["price"]),
-        proba=proba,
-        action=action_from_proba(proba),
-        explanation=build_explanation(last_row),
-    )
+X_seq = window[ACTIVE_FEATURES].values.astype(np.float32)[np.newaxis, ...]
+proba_lstm = float(
+lstm_model.predict(X_seq, verbose=0).ravel()[0]
+)
+
+# Optimized ensemble weights
+proba_ens = WEIGHT_RF * proba_rf + WEIGHT_LSTM * proba_lstm
+signal = int(proba_ens >= 0.5)
+action = action_from_signal(signal)
+
+last_row = window.iloc[-1]
+explanation = build_explanation(last_row)
+
+return SignalResponse(
+ticker=req.ticker.upper(),
+date=str(last_row.name.date()),
+price=float(last_row["price"]),
+proba=float(proba_ens),
+signal=signal,
+action=action,
+explanation=explanation,
+)
+
 
 @app.get("/predict")
-def get_predict(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
-    window = last_lookback_window(ticker)
-    if window is None:
-        return {
-            "ticker": ticker.upper(),
-            "last_date": "N/A",
-            "last_price": 0.0,
-            "probability": 0.0,
-            "action": "NO_DATA",
-            "explanation": "Not enough historical data.",
-        }
+def get_signal_get(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
+"""
+GET endpoint for signal prediction (dashboard integration).
+Enhanced with confidence metrics.
+"""
+window = last_lookback_window(ticker, enhanced=False)
+if window is None:
+return {
+"ticker": ticker.upper(),
+"last_date": "N/A",
+"last_price": 0.0,
+"probability": 0.0,
+"signal": 0,
+"action": "NO_DATA",
+"explanation": "Not enough history to compute indicators.",
+"recent_mae": None,
+"confidence": "LOW"
+}
 
-    probs = ensemble_proba_for_window(window)
-    proba = float(probs["ensemble"])
-    last_row = window.iloc[-1]
+X_tab = scaler.transform(window[ACTIVE_FEATURES])
+proba_rf = rf_model.predict_proba(
+X_tab[-1:].astype(np.float32)
+)[:, 1][0]
 
-    model_agreement = 1 - (
-        abs(probs["lstm"] - probs["rf"]) +
-        abs(probs["transformer"] - probs["rf"])
-    ) / 2
-    if model_agreement > 0.8 and (proba > 0.65 or proba < 0.35):
-        confidence = "HIGH"
-    elif model_agreement > 0.6:
-        confidence = "MEDIUM"
-    else:
-        confidence = "LOW"
+X_seq = window[ACTIVE_FEATURES].values.astype(np.float32)[np.newaxis, ...]
+proba_lstm = float(
+lstm_model.predict(X_seq, verbose=0).ravel()[0]
+)
 
-    return {
-        "ticker": ticker.upper(),
-        "last_date": str(last_row.name.date()),
-        "last_price": float(last_row["price"]),
-        "probability": proba,
-        "action": action_from_proba(proba),
-        "explanation": build_explanation(last_row),
-        "components": {k: float(v) for k, v in probs.items()},
-        "confidence": confidence,
-        "model_agreement": float(model_agreement),
-    }
+# Optimized ensemble
+proba_ens = WEIGHT_RF * proba_rf + WEIGHT_LSTM * proba_lstm
+signal = int(proba_ens >= 0.5)
+action = action_from_signal(signal)
+
+last_row = window.iloc[-1]
+explanation = build_explanation(last_row)
+
+# Calculate confidence based on model agreement
+model_agreement = 1 - abs(proba_rf - proba_lstm)
+if model_agreement > 0.8 and (proba_ens > 0.65 or proba_ens < 0.35):
+confidence = "HIGH"
+elif model_agreement > 0.6:
+confidence = "MEDIUM"
+else:
+confidence = "LOW"
+
+# Calculate recent MAE for validation
+future_price = window["price"].shift(-5)
+actual_ret_5d = (future_price / window["price"] - 1.0) * 100.0
+actual_label = (actual_ret_5d > 0).astype(float)
+
+mask = ~actual_label.isna()
+if mask.sum() > 0:
+recent_window = min(20, mask.sum())
+X_tab_all = scaler.transform(window[ACTIVE_FEATURES])
+proba_rf_all = rf_model.predict_proba(X_tab_all.astype(np.float32))[:, 1]
+
+proba_lstm_single = float(lstm_model.predict(X_seq, verbose=0).ravel()[0])
+proba_lstm_all = np.full(len(window), proba_lstm_single)
+
+proba_ens_all = WEIGHT_RF * proba_rf_all + WEIGHT_LSTM * proba_lstm_all
+
+recent_proba = proba_ens_all[mask][-recent_window:]
+recent_label = actual_label[mask].iloc[-recent_window:]
+recent_mae = float(np.abs(recent_label.values - recent_proba).mean())
+else:
+recent_mae = None
+
+return {
+"ticker": ticker.upper(),
+"last_date": str(last_row.name.date()),
+"last_price": float(last_row["price"]),
+"probability": float(proba_ens),
+"signal": signal,
+"action": action,
+"explanation": explanation,
+"recent_mae": recent_mae,
+"confidence": confidence,
+"model_agreement": float(model_agreement)
+}
+
 
 @app.get("/history")
 def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
-    window = last_lookback_window(ticker)
-    if window is None:
-        return {
-            "ticker": ticker.upper(),
-            "history": [],
-            "dates": [],
-            "price": [],
-            "proba": [],
-        }
+"""
+Return historical data with predictions for charting.
+"""
+window = last_lookback_window(ticker, enhanced=False)
+if window is None:
+return {
+"ticker": ticker.upper(),
+"history": [],
+"dates": [],
+"open": [],
+"high": [],
+"low": [],
+"close": [],
+"ma10": [],
+"ma20": [],
+"proba": [],
+"proba_low": [],
+"proba_high": [],
+"error": [],
+}
 
-    probs = ensemble_proba_for_window(window)
-    proba = float(probs["ensemble"])
+# RF probabilities for all rows
+X_tab = scaler.transform(window[ACTIVE_FEATURES])
+proba_rf_all = rf_model.predict_proba(
+X_tab.astype(np.float32)
+)[:, 1]
 
-    history = []
-    for idx, row in window.iterrows():
-        history.append({
-            "date": str(idx.date()),
-            "price": float(row["price"]),
-            "probability": proba,
-        })
+# LSTM probability
+arr = window[ACTIVE_FEATURES].values.astype(np.float32)
+X_seq = arr[np.newaxis, ...]
+proba_lstm_all = lstm_model.predict(X_seq, verbose=0).ravel()
+if proba_lstm_all.shape[0] == 1:
+proba_lstm_all = np.repeat(proba_lstm_all[0], len(window))
 
-    return {
-        "ticker": ticker.upper(),
-        "history": history,
-        "dates": [str(i.date()) for i in window.index],
-        "price": window["price"].round(2).tolist(),
-        "proba": [proba] * len(window),
-    }
+# Optimized ensemble
+proba_ens_all = WEIGHT_RF * proba_rf_all + WEIGHT_LSTM * proba_lstm_all[: len(window)]
+
+# Confidence band
+proba_low = np.clip(proba_ens_all - 0.1, 0.0, 1.0)
+proba_high = np.clip(proba_ens_all + 0.1, 0.0, 1.0)
+
+# Actual outcomes for error calculation
+future_price = window["price"].shift(-5)
+actual_ret_5d = (future_price / window["price"] - 1.0) * 100.0
+actual_label = (actual_ret_5d > 0).astype(float)
+error = (actual_label - proba_ens_all).abs()
+
+# Build history array
+history_data = []
+for i in range(len(window)):
+fp = future_price.iloc[i]
+history_data.append({
+"date": str(window.index[i].date()),
+"price": float(window["price"].iloc[i]),
+"probability": float(proba_ens_all[i]),
+"action": "BUY" if proba_ens_all[i] >= 0.5 else "NO_POSITION",
+"future_price": float(fp) if not np.isnan(fp) else None
+})
+
+return {
+"ticker": ticker.upper(),
+"history": history_data,
+"dates": [str(idx.date()) for idx in window.index],
+"open": window["Open"].round(2).tolist(),
+"high": window["High"].round(2).tolist(),
+"low": window["Low"].round(2).tolist(),
+"close": window["price"].round(2).tolist(),
+"ma10": window["ma_10"].round(2).tolist(),
+"ma20": window["ma_20"].round(2).tolist(),
+"proba": proba_ens_all.round(4).tolist(),
+"proba_low": proba_low.round(4).tolist(),
+"proba_high": proba_high.round(4).tolist(),
+"error": error.round(4).fillna(0).tolist(),
+}
+
 
 @app.get("/metrics")
 def get_metrics(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
-    return {
-        "ticker": ticker.upper(),
-        "test_auc": metadata.get("test_auc_ensemble"),
-        "val_auc": metadata.get("val_auc"),
-        "cagr": metadata.get("cagr"),
-        "sharpe": metadata.get("sharpe"),
-        "model_weights": ensemble_weights,
-    }
+"""
+Performance metrics with enhanced statistics.
+"""
+window = last_lookback_window(ticker, enhanced=False)
+if window is None:
+return {
+"ticker": ticker.upper(),
+"hit_rate": None,
+"mae": None,
+"avg_ret_buy": None,
+"n_signals": 0,
+"precision": None,
+"recall": None
+}
+
+X_tab = scaler.transform(window[ACTIVE_FEATURES])
+proba_rf_all = rf_model.predict_proba(
+X_tab.astype(np.float32)
+)[:, 1]
+
+arr = window[ACTIVE_FEATURES].values.astype(np.float32)
+X_seq = arr[np.newaxis, ...]
+proba_lstm_all = lstm_model.predict(X_seq, verbose=0).ravel()
+if proba_lstm_all.shape[0] == 1:
+proba_lstm_all = np.repeat(proba_lstm_all[0], len(window))
+
+proba_ens_all = WEIGHT_RF * proba_rf_all + WEIGHT_LSTM * proba_lstm_all[: len(window)]
+
+future_price = window["price"].shift(-5)
+actual_ret_5d = (future_price / window["price"] - 1.0) * 100.0
+actual_label = (actual_ret_5d > 0).astype(float)
+
+mask = ~actual_label.isna()
+if mask.sum() == 0:
+return {
+"ticker": ticker.upper(),
+"hit_rate": None,
+"mae": None,
+"avg_ret_buy": None,
+"n_signals": 0,
+"precision": None,
+"recall": None
+}
+
+proba_valid = proba_ens_all[mask.values]
+label_valid = actual_label[mask]
+
+# Predictions
+pred_buy = proba_valid >= 0.5
+
+# Calculate metrics
+buy_mask = pred_buy
+n_buy = int(buy_mask.sum())
+
+if n_buy > 0:
+# Hit rate (accuracy on BUY signals)
+hits = (label_valid[buy_mask] == 1.0).sum()
+hit_rate = float(hits) / n_buy
+avg_ret_buy = float(actual_ret_5d[mask][buy_mask].mean())
+
+# Precision: of all BUYs predicted, how many were correct
+precision = hit_rate
+else:
+hit_rate = None
+avg_ret_buy = None
+precision = None
+
+# Recall: of all actual good buys, how many did we catch
+actual_good_buys = label_valid == 1.0
+if actual_good_buys.sum() > 0:
+recall = float((pred_buy & actual_good_buys).sum() / actual_good_buys.sum())
+else:
+recall = None
+
+mae = float(np.abs(label_valid.values - proba_valid).mean())
+
+return {
+"ticker": ticker.upper(),
+"hit_rate": hit_rate,
+"precision": precision,
+"recall": recall,
+"mae": mae,
+"avg_ret_buy": avg_ret_buy,
+"n_signals": int(mask.sum()),
+"model_weights": {
+"random_forest": float(WEIGHT_RF),
+"lstm": float(WEIGHT_LSTM)
+}
+}
+
 
 @app.get("/")
 def root():
-    return {
-        "status": "online",
-        "version": "honest-ensemble-v1",
-        "lookback_days": LOOKBACK_DAYS,
-        "horizon_days": HORIZON,
-        "models": [
-            "LSTM-Attention", "Transformer",
-            "RandomForest", "LogisticRegression",
-            "XGBoost", "LightGBM",
-        ],
-        "endpoints": ["/predict", "/signal", "/history", "/metrics"],
-    }
+"""API health check and info."""
+return {
+"status": "online",
+"version": "2.0-enhanced",
+"features": {
+"total_indicators": len(ACTIVE_FEATURES),
+"ensemble_weights": {
+"random_forest": WEIGHT_RF,
+"lstm": WEIGHT_LSTM
+},
+"enhanced_mode": ACTIVE_FEATURES == ENHANCED_FEATURES
+},
+"endpoints": ["/predict", "/signal", "/history", "/metrics"]
+}
