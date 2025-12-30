@@ -28,6 +28,8 @@
       --accent-gold: #f59e0b;
       --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.3);
       --shadow-strong: 0 20px 60px rgba(15, 23, 42, 0.9);
+      --chart-text: #f1f5f9;
+      --chart-grid: rgba(148, 163, 184, 0.15);
     }
 
     [data-theme="light"] {
@@ -39,6 +41,8 @@
       --border: rgba(203, 213, 225, 0.8);
       --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.15);
       --shadow-strong: 0 15px 40px rgba(100, 116, 139, 0.2);
+      --chart-text: #0f172a;
+      --chart-grid: rgba(100, 116, 139, 0.2);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -482,6 +486,17 @@
       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
     }
 
+    .btn-refresh {
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      color: #fff;
+      margin-left: 8px;
+    }
+
+    .btn-refresh:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
     .watchlist-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -509,6 +524,13 @@
       font-weight: 700;
       color: var(--text-main);
       margin-bottom: 4px;
+    }
+
+    .watchlist-price {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
     }
 
     .watchlist-signal {
@@ -587,10 +609,6 @@
       opacity: 0.5;
     }
 
-    /* ============================================
-       RESPONSIVE DESIGN FOR DESKTOP/LAPTOP
-       ============================================ */
-
     /* Desktop optimizations (1200px and above) */
     @media (min-width: 1200px) {
       .container {
@@ -639,7 +657,6 @@
       }
     }
 
-    /* Tablet and small desktop (768px to 1199px) */
     @media (min-width: 768px) and (max-width: 1199px) {
       .container {
         max-width: 960px;
@@ -667,7 +684,6 @@
       }
     }
 
-    /* Mobile (below 768px) */
     @media (max-width: 767px) {
       .container {
         padding: 0 16px;
@@ -752,7 +768,6 @@
       }
     }
 
-    /* Ultra-wide screens (1600px and above) */
     @media (min-width: 1600px) {
       .container {
         max-width: 1600px;
@@ -1028,7 +1043,6 @@
   <script>
     const API_BASE = "https://stock-signal-api.onrender.com";
 
-    // Firebase Configuration - REPLACE WITH YOUR CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyAFVns8fWpaD-uwaRDskVM4QPXTPfIiahc",
       authDomain: "stock-signal-api-d0291.firebaseapp.com",
@@ -1044,13 +1058,10 @@
     const db = firebase.firestore();
 
     let currentUser = null;
-
-    // LocalStorage keys
     const PF_KEY = "portfolio";
     const ALERT_KEY = "alerts";
     const HISTORY_KEY = "tradeHistory";
 
-    // Check authentication on page load
     auth.onAuthStateChanged((user) => {
       if (!user) {
         window.location.href = 'index.html';
@@ -1063,7 +1074,6 @@
       }
     });
 
-    // Update user info display
     function updateUserInfo() {
       const userEmail = document.getElementById('userEmail');
       if (currentUser) {
@@ -1071,14 +1081,12 @@
       }
     }
 
-    // Logout
     function handleLogout() {
       auth.signOut().then(() => {
         window.location.href = 'index.html';
       });
     }
 
-    // Load user data from Firestore
     async function loadUserData() {
       if (!currentUser) return;
 
@@ -1116,7 +1124,6 @@
       }
     }
 
-    // Save user data to Firestore
     async function saveUserData() {
       if (!currentUser) return;
 
@@ -1138,17 +1145,23 @@
       }
     }
 
-    // Initialize dashboard
     async function init() {
       renderPortfolioTable();
       renderAlertTable();
       renderHistoryTable();
       displayNotes();
       await initQuickWatchlist();
+      await updatePortfolioPrices(); // Update portfolio with current prices
       updateStats();
+      
+      // Auto-update portfolio every 5 minutes
+      setInterval(async () => {
+        await updatePortfolioPrices();
+        updateStats();
+      }, 5 * 60 * 1000);
     }
 
-    // Quick Watchlist
+    // Quick Watchlist - FIXED VERSION
     const defaultWatchlist = ["AAPL", "MSFT", "GOOG", "TSLA"];
     
     async function initQuickWatchlist() {
@@ -1156,36 +1169,50 @@
       container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div>Loading signals...</div>';
 
       try {
-        const signals = await Promise.all(
-          defaultWatchlist.map(ticker => 
-            fetch(`${API_BASE}/predict?ticker=${ticker}`)
-              .then(r => r.json())
-              .catch(() => null)
-          )
-        );
+        const signals = [];
+        
+        for (const ticker of defaultWatchlist) {
+          try {
+            const resp = await fetch(`${API_BASE}/predict?ticker=${ticker}`);
+            if (resp.ok) {
+              const data = await resp.json();
+              signals.push({ ticker, data });
+            } else {
+              signals.push({ ticker, data: null });
+            }
+          } catch (err) {
+            console.error(`Error fetching ${ticker}:`, err);
+            signals.push({ ticker, data: null });
+          }
+        }
 
         container.innerHTML = '';
-        signals.forEach((signal, i) => {
-          if (signal && signal.action !== 'NO_DATA') {
+        let hasSignals = false;
+        
+        signals.forEach(({ ticker, data }) => {
+          if (data && data.action !== 'NO_DATA') {
+            hasSignals = true;
             const item = document.createElement('div');
             item.className = 'watchlist-item';
             item.onclick = () => {
-              document.getElementById('tickerInput').value = defaultWatchlist[i];
+              document.getElementById('tickerInput').value = ticker;
               getSignal();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const badgeClass = signal.action === 'BUY' ? 'buy' : 'hold';
+            const badgeClass = data.action === 'BUY' ? 'buy' : 'hold';
+            const priceDisplay = data.last_price ? `$${data.last_price.toFixed(2)}` : 'N/A';
             
             item.innerHTML = `
-              <div class="watchlist-ticker">${defaultWatchlist[i]}</div>
-              <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">$${signal.last_price?.toFixed(2) || 'N/A'}</div>
-              <div class="watchlist-signal ${badgeClass}">${signal.action}</div>
+              <div class="watchlist-ticker">${ticker}</div>
+              <div class="watchlist-price">${priceDisplay}</div>
+              <div class="watchlist-signal ${badgeClass}">${data.action}</div>
             `;
             container.appendChild(item);
           }
         });
 
-        if (container.children.length === 0) {
+        if (!hasSignals) {
           container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div>No signals available</div>';
         }
       } catch (error) {
@@ -1228,7 +1255,6 @@
         resultDiv.classList.add('show');
         statusText.textContent = `✓ Signal loaded for ${ticker}`;
 
-        // Load charts
         await loadHistoryCharts(ticker);
       } catch (error) {
         console.error('Error fetching signal:', error);
@@ -1257,12 +1283,24 @@
       }
     }
 
-    // Chart.js configurations with enhanced tooltips
+    // Get chart text color based on theme
+    function getChartTextColor() {
+      return document.body.getAttribute('data-theme') === 'light' ? '#0f172a' : '#f1f5f9';
+    }
+
+    function getChartGridColor() {
+      return document.body.getAttribute('data-theme') === 'light' ? 'rgba(100, 116, 139, 0.2)' : 'rgba(148, 163, 184, 0.15)';
+    }
+
+    // Chart.js configurations with WHITE TEXT FOR DARK MODE
     let priceChart = null;
     const priceCtx = document.getElementById("priceChart")?.getContext("2d");
 
     function renderPriceChart(dates, close, ma10, ma20) {
       if (priceChart) priceChart.destroy();
+
+      const textColor = getChartTextColor();
+      const gridColor = getChartGridColor();
 
       priceChart = new Chart(priceCtx, {
         type: "line",
@@ -1323,7 +1361,7 @@
               display: true,
               position: 'top',
               labels: {
-                color: "var(--text-main)",
+                color: textColor,
                 font: { size: 12, weight: '600' },
                 padding: 15,
                 usePointStyle: true,
@@ -1381,17 +1419,17 @@
           },
           scales: {
             x: {
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              grid: { color: gridColor },
               ticks: { 
-                color: "var(--text-muted)", 
+                color: textColor, 
                 maxTicksLimit: 8,
                 font: { size: 11 }
               },
             },
             y: {
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              grid: { color: gridColor },
               ticks: { 
-                color: "var(--text-muted)",
+                color: textColor,
                 callback: function(value) {
                   return '$' + value.toFixed(2);
                 },
@@ -1408,6 +1446,9 @@
 
     function renderProbabilityChart(dates, proba, proba_low, proba_high) {
       if (probabilityChart) probabilityChart.destroy();
+
+      const textColor = getChartTextColor();
+      const gridColor = getChartGridColor();
 
       probabilityChart = new Chart(probCtx, {
         type: "line",
@@ -1462,7 +1503,7 @@
               display: true,
               position: 'top',
               labels: {
-                color: "var(--text-main)",
+                color: textColor,
                 font: { size: 12, weight: '600' },
                 padding: 15,
                 usePointStyle: true,
@@ -1527,9 +1568,9 @@
           },
           scales: {
             x: {
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              grid: { color: gridColor },
               ticks: { 
-                color: "var(--text-muted)", 
+                color: textColor, 
                 maxTicksLimit: 8,
                 font: { size: 11 }
               },
@@ -1537,9 +1578,9 @@
             y: {
               min: 0,
               max: 1,
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              grid: { color: gridColor },
               ticks: { 
-                color: "var(--text-muted)",
+                color: textColor,
                 callback: function(value) {
                   return (value * 100).toFixed(0) + '%';
                 },
@@ -1557,6 +1598,9 @@
     function renderTimeMachineChart(history) {
       if (timeMachineChart) timeMachineChart.destroy();
       if (!history || history.length === 0) return;
+
+      const textColor = getChartTextColor();
+      const gridColor = getChartGridColor();
 
       const dates = history.map((h) => h.date);
       const prices = history.map((h) => h.price);
@@ -1621,7 +1665,7 @@
               display: true,
               position: 'top',
               labels: {
-                color: "var(--text-main)",
+                color: textColor,
                 font: { size: 12, weight: '600' },
                 padding: 15,
                 usePointStyle: true,
@@ -1682,9 +1726,9 @@
           },
           scales: {
             x: {
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              grid: { color: gridColor },
               ticks: { 
-                color: "var(--text-muted)", 
+                color: textColor, 
                 maxTicksLimit: 10,
                 font: { size: 11 }
               },
@@ -1692,9 +1736,9 @@
             y: {
               type: 'linear',
               position: 'left',
-              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              grid: { color: gridColor },
               ticks: { 
-                color: "var(--text-muted)",
+                color: textColor,
                 callback: function(value) {
                   return '$' + value.toFixed(2);
                 },
@@ -1703,7 +1747,7 @@
               title: {
                 display: true,
                 text: 'Price ($)',
-                color: "var(--text-main)",
+                color: textColor,
                 font: { size: 12, weight: 'bold' }
               }
             },
@@ -1714,7 +1758,7 @@
               max: 100,
               grid: { display: false },
               ticks: { 
-                color: "var(--text-muted)",
+                color: textColor,
                 callback: function(value) {
                   return value.toFixed(0) + '%';
                 },
@@ -1723,7 +1767,7 @@
               title: {
                 display: true,
                 text: 'Probability (%)',
-                color: "var(--text-main)",
+                color: textColor,
                 font: { size: 12, weight: 'bold' }
               }
             },
@@ -1732,7 +1776,32 @@
       });
     }
 
-    // Portfolio Management
+    // Portfolio Management - WITH PRICE UPDATES
+    async function updatePortfolioPrices() {
+      const portfolio = JSON.parse(localStorage.getItem(PF_KEY) || '[]');
+      if (portfolio.length === 0) return;
+
+      console.log('Updating portfolio prices...');
+      
+      for (let item of portfolio) {
+        try {
+          const resp = await fetch(`${API_BASE}/predict?ticker=${item.ticker}`);
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.last_price) {
+              item.lastPrice = data.last_price;
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching price for ${item.ticker}:`, error);
+        }
+      }
+
+      localStorage.setItem(PF_KEY, JSON.stringify(portfolio));
+      renderPortfolioTable();
+      saveUserData();
+    }
+
     function addToPortfolio() {
       const ticker = document.getElementById('pfTicker').value.trim().toUpperCase();
       const qty = parseInt(document.getElementById('pfQty').value);
@@ -1766,6 +1835,9 @@
       renderHistoryTable();
       updateStats();
       saveUserData();
+      
+      // Fetch current price immediately
+      updatePortfolioPrices();
     }
 
     function renderPortfolioTable() {
@@ -1802,11 +1874,35 @@
             ${pl >= 0 ? '+' : ''}$${pl.toFixed(2)} (${plPercent}%)
           </td>
           <td>
+            <button class="btn-small btn-refresh" onclick="refreshPortfolioItem(${index})" title="Refresh Price">🔄</button>
             <button class="btn-small btn-remove" onclick="removeFromPortfolio(${index})">Remove</button>
           </td>
         `;
         tbody.appendChild(row);
       });
+    }
+
+    async function refreshPortfolioItem(index) {
+      const portfolio = JSON.parse(localStorage.getItem(PF_KEY) || '[]');
+      const item = portfolio[index];
+      
+      try {
+        const resp = await fetch(`${API_BASE}/predict?ticker=${item.ticker}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.last_price) {
+            item.lastPrice = data.last_price;
+            localStorage.setItem(PF_KEY, JSON.stringify(portfolio));
+            renderPortfolioTable();
+            updateStats();
+            saveUserData();
+            alert(`✓ ${item.ticker} price updated to $${data.last_price.toFixed(2)}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing price:', error);
+        alert('✗ Failed to refresh price');
+      }
     }
 
     function removeFromPortfolio(index) {
@@ -1947,10 +2043,10 @@
       document.getElementById('totalPL').className = totalPL >= 0 ? 'stat-value green' : 'stat-value red';
       document.getElementById('activePositions').textContent = portfolio.length;
 
-      // Calculate win rate from history
       const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
       const buyTrades = history.filter(t => t.type === 'BUY');
-      const winRate = buyTrades.length > 0 ? ((portfolio.filter(p => p.lastPrice > p.buyPrice).length / buyTrades.length) * 100).toFixed(1) : 0;
+      const winningPositions = portfolio.filter(p => p.lastPrice > p.buyPrice).length;
+      const winRate = buyTrades.length > 0 ? ((winningPositions / buyTrades.length) * 100).toFixed(1) : 0;
       document.getElementById('winRate').textContent = `${winRate}%`;
     }
 
@@ -1966,9 +2062,15 @@
       document.body.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
       themeToggle.textContent = newTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
+      
+      // Re-render charts with new colors
+      const ticker = document.getElementById('resultTicker').textContent;
+      if (ticker && ticker !== 'AAPL') {
+        loadHistoryCharts(ticker);
+      }
     });
 
-    // Keep API awake (ping every 10 minutes)
+    // Keep API awake
     setInterval(async () => {
       try {
         await fetch(`${API_BASE}/`);
