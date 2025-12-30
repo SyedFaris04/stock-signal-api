@@ -68,36 +68,36 @@ def compute_rsi(series, window=14):
 
 
 def compute_macd(series, fast=12, slow=26, signal=9):
-"""Moving Average Convergence Divergence"""
-ema_fast = series.ewm(span=fast, adjust=False).mean()
-ema_slow = series.ewm(span=slow, adjust=False).mean()
-macd = ema_fast - ema_slow
-macd_signal = macd.ewm(span=signal, adjust=False).mean()
-macd_hist = macd - macd_signal
-return macd, macd_signal, macd_hist
+    """Moving Average Convergence Divergence"""
+    ema_fast = series.ewm(span=fast, adjust=False).mean()
+    ema_slow = series.ewm(span=slow, adjust=False).mean()
+    macd = ema_fast - ema_slow
+    macd_signal = macd.ewm(span=signal, adjust=False).mean()
+    macd_hist = macd - macd_signal
+    return macd, macd_signal, macd_hist
 
 
 def compute_bollinger(series, window=20, num_std=2):
-"""Bollinger Bands"""
-mid = series.rolling(window).mean()
-std = series.rolling(window).std()
-upper = mid + num_std * std
-lower = mid - num_std * std
-width = (upper - lower) / (mid + 1e-9)
-return upper, mid, lower, width
+    """Bollinger Bands"""
+    mid = series.rolling(window).mean()
+    std = series.rolling(window).std()
+    upper = mid + num_std * std
+    lower = mid - num_std * std
+    width = (upper - lower) / (mid + 1e-9)
+    return upper, mid, lower, width
 
 
 def compute_atr(df, window=14):
-"""Average True Range"""
-high = df["High"]
-low = df["Low"]
-close = df["price"]
-prev_close = close.shift(1)
-tr1 = high - low
-tr2 = (high - prev_close).abs()
-tr3 = (low - prev_close).abs()
-tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-return tr.rolling(window).mean()
+    """Average True Range"""
+    high = df["High"]
+    low = df["Low"]
+    close = df["price"]
+    prev_close = close.shift(1)
+    tr1 = high - low
+    tr2 = (high - prev_close).abs()
+    tr3 = (low - prev_close).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    return tr.rolling(window).mean()
 
 
 def compute_stochastic(df, window=14):
