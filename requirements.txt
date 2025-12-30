@@ -1,9 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 numpy
 pandas
 yfinance
-joblib
 scikit-learn
-tensorflow==2.20.0
+tensorflow
+joblib
