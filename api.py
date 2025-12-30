@@ -59,22 +59,22 @@ WEIGHT_LSTM = 0.7 # LSTM weight
 
 # ---- feature helpers ----
 def compute_rsi(series, window=14):
-"""Relative Strength Index"""
-delta = series.diff()
-gain = delta.clip(lower=0).rolling(window).mean()
-loss = (-delta.clip(upper=0)).rolling(window).mean()
-rs = gain / (loss + 1e-9)
-return 100 - (100 / (1 + rs))
+    """Relative Strength Index"""
+    delta = series.diff()
+    gain = delta.clip(lower=0).rolling(window).mean()
+    loss = (-delta.clip(upper=0)).rolling(window).mean()
+    rs = gain / (loss + 1e-9)
+    return 100 - (100 / (1 + rs))
 
 
 def compute_macd(series, fast=12, slow=26, signal=9):
-"""Moving Average Convergence Divergence"""
-ema_fast = series.ewm(span=fast, adjust=False).mean()
-ema_slow = series.ewm(span=slow, adjust=False).mean()
-macd = ema_fast - ema_slow
-macd_signal = macd.ewm(span=signal, adjust=False).mean()
-macd_hist = macd - macd_signal
-return macd, macd_signal, macd_hist
+    """Moving Average Convergence Divergence"""
+    ema_fast = series.ewm(span=fast, adjust=False).mean()
+    ema_slow = series.ewm(span=slow, adjust=False).mean()
+    macd = ema_fast - ema_slow
+    macd_signal = macd.ewm(span=signal, adjust=False).mean()
+    macd_hist = macd - macd_signal
+    return macd, macd_signal, macd_hist
 
 
 def compute_bollinger(series, window=20, num_std=2):
