@@ -120,7 +120,11 @@ W_LOG = ensemble_weights["logreg_weight"]
 W_XGB = ensemble_weights["xgb_weight"]
 W_LGB = ensemble_weights["lgb_weight"]
 
-ACTIVE_FEATURES = FEATURES  # keep old name for compatibility
+ACTIVE_FEATURES = FEATURES  # original list from training
+
+def get_active_features(df: pd.DataFrame) -> List[str]:
+    """Use only features that actually exist in the current DataFrame."""
+    return [f for f in FEATURES if f in df.columns]
 
 # =========================================================
 # 3. FEATURE ENGINEERING (MATCHES TRAINING)
@@ -332,7 +336,11 @@ def build_explanation(row: pd.Series) -> str:
 # =========================================================
 
 def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
-    X_tab_all = scaler.transform(window[ACTIVE_FEATURES])
+    active = get_active_features(window)
+    if not active:
+        raise ValueError("No overlapping features between FEATURES and window columns")
+
+    X_tab_all = scaler.transform(window[active])
     x_last = X_tab_all[-1:].astype(np.float32)
 
     p_rf  = float(rf_model.predict_proba(x_last)[:, 1][0])
@@ -340,7 +348,7 @@ def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
     p_xgb = float(xgb_model.predict_proba(x_last)[:, 1][0])
     p_lgb = float(lgb_model.predict_proba(x_last)[:, 1][0])
 
-    seq_raw = window[ACTIVE_FEATURES].values.astype(np.float32)
+    seq_raw = window[active].values.astype(np.float32)
     seq_scaled = scaler_lstm.transform(seq_raw)
     X_seq = seq_scaled[np.newaxis, ...]
 
