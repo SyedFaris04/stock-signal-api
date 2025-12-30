@@ -5,5 +5,5 @@ numpy
 pandas
 yfinance
 scikit-learn
-tensorflow
+tensorflow==2.20.0
 joblib
