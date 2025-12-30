@@ -201,7 +201,7 @@
 
     .game-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 16px;
       margin-bottom: 24px;
     }
@@ -214,6 +214,12 @@
       backdrop-filter: blur(20px);
       box-shadow: var(--shadow-strong);
       animation: slideIn 0.5s ease forwards;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-glow);
     }
 
     .stat-label {
@@ -248,6 +254,12 @@
       background-clip: text;
     }
 
+    .game-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+
     .game-panel {
       background: var(--bg-panel);
       border-radius: 24px;
@@ -255,7 +267,6 @@
       box-shadow: var(--shadow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.05);
       padding: 32px;
       backdrop-filter: blur(24px) saturate(180%);
-      margin-bottom: 24px;
       animation: slideIn 0.6s ease forwards;
     }
 
@@ -274,6 +285,7 @@
       color: var(--text-muted);
       margin-bottom: 24px;
       font-weight: 500;
+      line-height: 1.6;
     }
 
     .stock-info {
@@ -300,7 +312,7 @@
 
     .indicators-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 12px;
       margin-top: 16px;
     }
@@ -336,10 +348,12 @@
       padding: 12px;
       background: rgba(15, 23, 42, 0.3);
       border-radius: 12px;
+      overflow-x: auto;
     }
 
     .price-bar {
       flex: 1;
+      min-width: 8px;
       background: linear-gradient(180deg, #3b82f6, #06b6d4);
       border-radius: 4px 4px 0 0;
       transition: all 0.3s ease;
@@ -367,6 +381,7 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.2s ease;
+      z-index: 10;
     }
 
     .price-bar:hover .price-bar-tooltip {
@@ -413,6 +428,10 @@
       position: relative;
       overflow: hidden;
       min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
 
     .action-btn::before {
@@ -636,21 +655,303 @@
       font-weight: 600;
     }
 
-    @media (max-width: 768px) {
+    /* ============================================
+       RESPONSIVE DESIGN FOR DESKTOP/LAPTOP
+       ============================================ */
+
+    /* Desktop/Laptop (1024px and above) */
+    @media (min-width: 1024px) {
+      .container {
+        max-width: 1400px;
+        padding: 0 40px;
+      }
+
       .game-stats {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+      }
+
+      .game-layout {
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+      }
+
+      .game-panel {
+        grid-column: 1;
+      }
+
+      .leaderboard {
+        grid-column: 2;
+        position: sticky;
+        top: 100px;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
+        align-self: start;
+      }
+
+      .leaderboard::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .leaderboard::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.3);
+        border-radius: 3px;
+      }
+
+      .leaderboard::-webkit-scrollbar-thumb {
+        background: rgba(59, 130, 246, 0.5);
+        border-radius: 3px;
+      }
+
+      .leaderboard::-webkit-scrollbar-thumb:hover {
+        background: rgba(59, 130, 246, 0.7);
+      }
+
+      .indicators-grid {
+        grid-template-columns: repeat(3, 1fr);
       }
 
       .action-buttons {
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: center;
       }
 
       .action-btn {
+        min-width: 180px;
+        padding: 20px 40px;
+        font-size: 17px;
+      }
+
+      header h1 {
+        font-size: 28px;
+      }
+
+      .game-title {
+        font-size: 32px;
+      }
+
+      .stock-ticker {
+        font-size: 40px;
+      }
+
+      .price-chart {
+        height: 140px;
+      }
+    }
+
+    /* Tablet (768px to 1023px) */
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .container {
+        max-width: 960px;
+        padding: 0 24px;
+      }
+
+      .game-stats {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+      }
+
+      .indicators-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .action-buttons {
+        flex-direction: row;
+        gap: 12px;
+      }
+
+      .action-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 18px 24px;
+      }
+
+      .game-title {
+        font-size: 26px;
+      }
+
+      .stock-ticker {
+        font-size: 36px;
+      }
+    }
+
+    /* Mobile (below 768px) */
+    @media (max-width: 767px) {
+      .container {
+        padding: 0 16px;
+        margin: 20px auto;
+      }
+
+      .game-stats {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      header {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+      }
+
+      header h1 {
+        font-size: 18px;
         width: 100%;
+        margin-bottom: 8px;
+      }
+
+      .header-controls {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .btn {
+        padding: 6px 12px;
+        font-size: 11px;
+      }
+
+      .game-panel {
+        padding: 20px;
+      }
+
+      .game-title {
+        font-size: 22px;
+      }
+
+      .game-subtitle {
+        font-size: 13px;
+      }
+
+      .stock-ticker {
+        font-size: 24px;
+      }
+
+      .stock-date-range {
+        font-size: 12px;
       }
 
       .indicators-grid {
         grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .indicator {
+        padding: 10px;
+      }
+
+      .indicator-label {
+        font-size: 10px;
+      }
+
+      .indicator-value {
+        font-size: 16px;
+      }
+
+      .price-chart {
+        height: 100px;
+        gap: 3px;
+      }
+
+      .question-text {
+        font-size: 18px;
+      }
+
+      .question-hint {
+        font-size: 12px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .action-btn {
+        width: 100%;
+        padding: 14px 24px;
+        font-size: 15px;
+      }
+
+      .result-icon {
+        font-size: 48px;
+      }
+
+      .result-title {
+        font-size: 24px;
+      }
+
+      .result-text {
+        font-size: 14px;
+      }
+
+      .leaderboard {
+        padding: 20px;
+      }
+
+      .leaderboard-title {
+        font-size: 18px;
+      }
+
+      .leaderboard-item {
+        padding: 12px;
+        gap: 12px;
+      }
+
+      .rank {
+        font-size: 20px;
+        min-width: 32px;
+      }
+
+      .player-name {
+        font-size: 14px;
+      }
+
+      .player-stats {
+        font-size: 11px;
+      }
+
+      .player-score {
+        font-size: 18px;
+      }
+
+      .stat-value {
+        font-size: 24px;
+      }
+
+      .stat-label {
+        font-size: 11px;
+      }
+    }
+
+    /* Small mobile adjustments */
+    @media (max-width: 374px) {
+      .game-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .indicators-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .action-btn {
+        padding: 12px 20px;
+        font-size: 14px;
+      }
+    }
+
+    /* Large Desktop (1600px and above) */
+    @media (min-width: 1600px) {
+      .container {
+        max-width: 1600px;
+      }
+
+      .game-stats {
+        grid-template-columns: repeat(6, 1fr);
+      }
+
+      .game-layout {
+        grid-template-columns: 2.5fr 1fr;
+      }
+
+      .price-chart {
+        height: 160px;
       }
     }
   </style>
@@ -695,21 +996,24 @@
       </div>
     </div>
 
-    <!-- Game Panel -->
-    <div class="game-panel">
-      <div class="game-title">📈 Predict the Market Move</div>
-      <div class="game-subtitle">Study the technical indicators and historical price data, then predict whether you should BUY, HOLD, or SELL this stock for the next 5 days.</div>
+    <!-- Game Layout -->
+    <div class="game-layout">
+      <!-- Game Panel -->
+      <div class="game-panel">
+        <div class="game-title">📈 Predict the Market Move</div>
+        <div class="game-subtitle">Study the technical indicators and historical price data, then predict whether you should BUY, HOLD, or SELL this stock for the next 5 days.</div>
 
-      <div id="gameContent" class="loading">Loading market data...</div>
-    </div>
-
-    <!-- Leaderboard -->
-    <div class="leaderboard">
-      <div class="leaderboard-title">
-        🏆 Top Players
+        <div id="gameContent" class="loading">Loading market data...</div>
       </div>
-      <div class="leaderboard-list" id="leaderboardList">
-        <div class="loading">Loading leaderboard...</div>
+
+      <!-- Leaderboard -->
+      <div class="leaderboard">
+        <div class="leaderboard-title">
+          🏆 Top Players
+        </div>
+        <div class="leaderboard-list" id="leaderboardList">
+          <div class="loading">Loading leaderboard...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -717,17 +1021,16 @@
   <script>
     const API_BASE = "https://stock-signal-api.onrender.com";
 
-   // Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAFVns8fWpaD-uwaRDskVM4QPXTPfIiahc",
-  authDomain: "stock-signal-api-d0291.firebaseapp.com",
-  projectId: "stock-signal-api-d0291",
-  storageBucket: "stock-signal-api-d0291.firebasestorage.app",
-  messagingSenderId: "498426661242",
-  appId: "1:498426661242:web:033b8af321d874e99aaec3",
-  measurementId: "G-M23P4FNF61"
-};
-
+    // Firebase Configuration - REPLACE WITH YOUR CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFVns8fWpaD-uwaRDskVM4QPXTPfIiahc",
+      authDomain: "stock-signal-api-d0291.firebaseapp.com",
+      projectId: "stock-signal-api-d0291",
+      storageBucket: "stock-signal-api-d0291.firebasestorage.app",
+      messagingSenderId: "498426661242",
+      appId: "1:498426661242:web:033b8af321d874e99aaec3",
+      measurementId: "G-M23P4FNF61"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -743,50 +1046,19 @@ const firebaseConfig = {
     };
 
     let currentChallenge = null;
-    const STOCK_POOL = ["AAPL", "MSFT", "GOOG", "TSLA", "AMZN", "NVDA", "META", "JPM"];
+    const STOCK_POOL = ["AAPL", "MSFT", "GOOG", "TSLA", "AMZN", "NVDA", "META", "JPM", "BAC", "DIS"];
 
     // Auth check
-// Auth check with better error handling
-auth.onAuthStateChanged((user) => {
-  if (!user) {
-    console.log('No user authenticated, redirecting to login...');
-    alert('Please log in first to access the game');
-    window.location.href = 'index.html';
-  } else {
-    console.log('User authenticated:', user.email);
-    currentUser = user;
-    
-    // Initialize user document if it doesn't exist
-    db.collection('users').doc(user.uid).get()
-      .then((doc) => {
-        if (!doc.exists) {
-          // Create initial user document
-          return db.collection('users').doc(user.uid).set({
-            email: user.email,
-            displayName: user.displayName || user.email.split('@')[0],
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            gameState: {
-              coins: 0,
-              correct: 0,
-              total: 0,
-              streak: 0,
-              bestStreak: 0
-            }
-          });
-        }
-      })
-      .then(() => {
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+      } else {
+        currentUser = user;
         loadGameState();
         loadLeaderboard();
         startNewChallenge();
-      })
-      .catch((error) => {
-        console.error('Error initializing user:', error);
-        alert('Error loading game. Please try again.');
-      });
-  }
-});
-
+      }
+    });
 
     // Load game state from Firestore
     async function loadGameState() {
@@ -908,7 +1180,7 @@ auth.onAuthStateChanged((user) => {
       // Create price chart bars
       const maxPrice = Math.max(...c.contextData.map(d => d.price));
       const minPrice = Math.min(...c.contextData.map(d => d.price));
-      const priceRange = maxPrice - minPrice;
+      const priceRange = maxPrice - minPrice || 1;
 
       const chartBars = c.contextData.map(d => {
         const height = ((d.price - minPrice) / priceRange) * 100;
@@ -969,15 +1241,15 @@ auth.onAuthStateChanged((user) => {
 
         <div class="action-buttons">
           <button class="action-btn btn-buy" onclick="makeDecision('BUY')">
-            📈 BUY<br>
+            <span>📈 BUY</span>
             <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Expect price increase</small>
           </button>
           <button class="action-btn btn-hold" onclick="makeDecision('HOLD')">
-            ⏸️ HOLD<br>
+            <span>⏸️ HOLD</span>
             <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Price will stay flat</small>
           </button>
           <button class="action-btn btn-sell" onclick="makeDecision('SELL')">
-            📉 SELL<br>
+            <span>📉 SELL</span>
             <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Expect price decrease</small>
           </button>
         </div>
@@ -1008,6 +1280,7 @@ auth.onAuthStateChanged((user) => {
 
       updateStatsDisplay();
       saveGameState();
+      loadLeaderboard(); // Refresh leaderboard after each game
       showResult(isCorrect, choice);
     }
 
@@ -1092,7 +1365,7 @@ auth.onAuthStateChanged((user) => {
           else if (rank === 3) { rankClass = 'third'; rankEmoji = '🥉'; }
 
           html += `
-            <div class="leaderboard-item">
+            <div class="leaderboard-item" style="${doc.id === currentUser.uid ? 'border: 2px solid rgba(59, 130, 246, 0.5);' : ''}">
               <div class="rank ${rankClass}">${rankEmoji}</div>
               <div class="player-info">
                 <div class="player-name">${name}${doc.id === currentUser.uid ? ' (You)' : ''}</div>
@@ -1127,4 +1400,3 @@ auth.onAuthStateChanged((user) => {
   </script>
 </body>
 </html>
-
