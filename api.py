@@ -120,10 +120,29 @@ W_LOG = ensemble_weights["logreg_weight"]
 W_XGB = ensemble_weights["xgb_weight"]
 W_LGB = ensemble_weights["lgb_weight"]
 
-ACTIVE_FEATURES = FEATURES  # full feature set used at training time
+ACTIVE_FEATURES = FEATURES  # full feature list used at training time
 
 # =========================================================
-# 3. FEATURE ENGINEERING (MATCHES TRAINING)
+# 3. FASTAPI APP + CORS
+# =========================================================
+
+app = FastAPI(title="Honest Stock Signal API")
+
+origins = [
+    "https://syedfaris04.github.io",
+    "https://syedfaris04.github.io/",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# =========================================================
+# 4. FEATURE ENGINEERING (MATCHES TRAINING)
 # =========================================================
 
 def compute_rsi(series, window=14):
@@ -225,6 +244,7 @@ def last_lookback_window(ticker: str) -> pd.DataFrame | None:
     if df is None or df.empty:
         return None
 
+    # Flatten multiindex from yfinance if present
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
 
@@ -273,7 +293,7 @@ def last_lookback_window(ticker: str) -> pd.DataFrame | None:
     return df.iloc[-LOOKBACK_DAYS:]
 
 # =========================================================
-# 4. SIGNAL / EXPLANATION
+# 5. SIGNAL / EXPLANATION
 # =========================================================
 
 def action_from_proba(p: float) -> str:
@@ -333,7 +353,7 @@ def build_explanation(row: pd.Series) -> str:
     return " ".join(msgs)
 
 # =========================================================
-# 5. ENSEMBLE PREDICTION
+# 6. ENSEMBLE PREDICTION
 # =========================================================
 
 def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
@@ -372,7 +392,7 @@ def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
     }
 
 # =========================================================
-# 6. FASTAPI APP + ENDPOINTS
+# 7. ENDPOINTS
 # =========================================================
 
 class SignalRequest(BaseModel):
@@ -385,16 +405,6 @@ class SignalResponse(BaseModel):
     proba: float
     action: str
     explanation: str
-
-app = FastAPI(title="Honest Stock Signal API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 @app.post("/signal", response_model=SignalResponse)
 def post_signal(req: SignalRequest):
