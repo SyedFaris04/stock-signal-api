@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # =========================================================
-# 1. CUSTOM LAYERS (NEEDED TO LOAD LSTM MODEL)
+# 1. CUSTOM LAYERS (NEEDED TO LOAD SAVED MODELS)
 # =========================================================
 
 class AttentionLayer(tf.keras.layers.Layer):
@@ -49,6 +49,34 @@ class AttentionLayer(tf.keras.layers.Layer):
         base_config = super().get_config()
         return base_config
 
+
+class PositionalEncoding(tf.keras.layers.Layer):
+    def __init__(self, d_model, max_len=5000, **kwargs):
+        super().__init__(**kwargs)
+        self.d_model = d_model
+        self.max_len = max_len
+
+        position = np.arange(max_len)[:, np.newaxis]
+        div_term = np.exp(np.arange(0, d_model, 2) * -(np.log(10000.0) / d_model))
+
+        pe = np.zeros((max_len, d_model))
+        pe[:, 0::2] = np.sin(position * div_term)
+        pe[:, 1::2] = np.cos(position * div_term)
+
+        self.pos_encoding = tf.constant(pe[np.newaxis, :, :], dtype=tf.float32)
+
+    def call(self, inputs):
+        seq_len = tf.shape(inputs)[1]
+        return inputs + self.pos_encoding[:, :seq_len, :]
+
+    def get_config(self):
+        base_config = super().get_config()
+        base_config.update({
+            "d_model": self.d_model,
+            "max_len": self.max_len,
+        })
+        return base_config
+
 # =========================================================
 # 2. LOAD MODELS, SCALERS, METADATA
 # =========================================================
@@ -75,6 +103,7 @@ lstm_model = tf.keras.models.load_model(
 transformer_model = tf.keras.models.load_model(
     os.path.join(BASE_DIR, "transformer_model.keras"),
     compile=False,
+    custom_objects={"PositionalEncoding": PositionalEncoding},
 )
 
 FEATURES: List[str] = load_pickle("features.pkl")
