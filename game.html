@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Stock Trading Simulator - Learn & Earn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #020617;
+      --bg-panel: rgba(15, 23, 42, 0.85);
+      --bg-input: rgba(15, 23, 42, 0.85);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border: rgba(148, 163, 184, 0.25);
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-gold: #f59e0b;
+      --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.3);
+      --shadow-strong: 0 20px 60px rgba(15, 23, 42, 0.9);
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-panel: rgba(255, 255, 255, 0.95);
+      --bg-input: rgba(249, 250, 251, 0.98);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: rgba(203, 213, 225, 0.8);
+      --shadow-glow: 0 0 30px rgba(59, 130, 246, 0.15);
+      --shadow-strong: 0 15px 40px rgba(100, 116, 139, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes floatParticle {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+      50% { transform: translate(20px, -30px) scale(1.1); opacity: 0.9; }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.7); }
+    }
+
+    @keyframes coinFlip {
+      0% { transform: rotateY(0deg) scale(1); }
+      50% { transform: rotateY(180deg) scale(1.2); }
+      100% { transform: rotateY(360deg) scale(1); }
+    }
+
+    @keyframes celebrate {
+      0%, 100% { transform: scale(1); }
+      25% { transform: scale(1.1) rotate(-5deg); }
+      75% { transform: scale(1.1) rotate(5deg); }
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text-main);
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0a0e27 0%, #020617 50%, #0c1838 100%);
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
+      overflow-x: hidden;
+      position: relative;
+      transition: background 0.4s ease, color 0.4s ease;
+    }
+
+    [data-theme="light"] body {
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+    }
+
+    .particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
+      border-radius: 50%;
+      animation: floatParticle 8s ease-in-out infinite;
+    }
+    .particle:nth-child(1) { top: 10%; left: 20%; animation-delay: 0s; animation-duration: 7s; }
+    .particle:nth-child(2) { top: 60%; left: 80%; animation-delay: 2s; animation-duration: 9s; }
+    .particle:nth-child(3) { top: 30%; left: 50%; animation-delay: 4s; animation-duration: 6s; }
+    .particle:nth-child(4) { top: 80%; left: 10%; animation-delay: 1s; animation-duration: 8s; }
+    .particle:nth-child(5) { top: 40%; left: 70%; animation-delay: 3s; animation-duration: 7.5s; }
+    .particle:nth-child(6) { top: 70%; left: 40%; animation-delay: 5s; animation-duration: 6.5s; }
+
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 25%, rgba(59, 130, 246, 0.15), transparent 50%),
+        radial-gradient(circle at 85% 75%, rgba(16, 185, 129, 0.12), transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(60px);
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(15, 23, 42, 0.75);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    [data-theme="light"] header {
+      background: rgba(255, 255, 255, 0.85);
+      border-bottom-color: rgba(203, 213, 225, 0.8);
+      box-shadow: 0 4px 20px rgba(100, 116, 139, 0.15);
+    }
+
+    header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    }
+
+    .btn-dashboard {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 20px;
+    }
+
+    .game-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-strong);
+      animation: slideIn 0.5s ease forwards;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-value.gold {
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-value.green {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .game-panel {
+      background: var(--bg-panel);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      padding: 32px;
+      backdrop-filter: blur(24px) saturate(180%);
+      margin-bottom: 24px;
+      animation: slideIn 0.6s ease forwards;
+    }
+
+    .game-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .game-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+
+    .stock-info {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
+      border-radius: 16px;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .stock-ticker {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 12px;
+    }
+
+    .stock-date-range {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .indicators-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .indicator {
+      background: rgba(15, 23, 42, 0.5);
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .indicator-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .indicator-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .price-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 120px;
+      margin: 24px 0;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.3);
+      border-radius: 12px;
+    }
+
+    .price-bar {
+      flex: 1;
+      background: linear-gradient(180deg, #3b82f6, #06b6d4);
+      border-radius: 4px 4px 0 0;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .price-bar:hover {
+      background: linear-gradient(180deg, #10b981, #06b6d4);
+      transform: scaleY(1.05);
+    }
+
+    .price-bar-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #f1f5f9;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .price-bar:hover .price-bar-tooltip {
+      opacity: 1;
+    }
+
+    .question {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(234, 179, 8, 0.05));
+      border: 2px solid rgba(245, 158, 11, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .question-text {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .question-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      padding: 16px 32px;
+      border-radius: 16px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      min-width: 140px;
+    }
+
+    .action-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.3));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .action-btn:hover::before {
+      opacity: 1;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-4px);
+    }
+
+    .action-btn:active {
+      transform: translateY(-2px);
+    }
+
+    .btn-buy {
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-buy:hover {
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.6);
+    }
+
+    .btn-hold {
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-hold:hover {
+      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.6);
+    }
+
+    .btn-sell {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-sell:hover {
+      box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6);
+    }
+
+    .result-panel {
+      background: var(--bg-panel);
+      border-radius: 20px;
+      border: 2px solid;
+      padding: 28px;
+      margin-top: 24px;
+      text-align: center;
+      animation: slideIn 0.5s ease forwards;
+      display: none;
+    }
+
+    .result-panel.correct {
+      border-color: rgba(16, 185, 129, 0.6);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
+    }
+
+    .result-panel.wrong {
+      border-color: rgba(239, 68, 68, 0.6);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+    }
+
+    .result-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      animation: celebrate 0.6s ease;
+    }
+
+    .result-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-main);
+    }
+
+    .result-text {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.7;
+      font-weight: 500;
+    }
+
+    .reward-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+      margin: 12px 0;
+      animation: coinFlip 0.8s ease;
+    }
+
+    .next-btn {
+      margin-top: 20px;
+      padding: 12px 32px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .next-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
+
+    .leaderboard {
+      background: var(--bg-panel);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-strong);
+      padding: 28px;
+      backdrop-filter: blur(24px);
+    }
+
+    .leaderboard-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(59, 130, 246, 0.05);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .leaderboard-item:hover {
+      background: rgba(59, 130, 246, 0.1);
+      transform: translateX(4px);
+    }
+
+    .rank {
+      font-size: 24px;
+      font-weight: 700;
+      min-width: 40px;
+      text-align: center;
+    }
+
+    .rank.first {
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .rank.second {
+      color: #94a3b8;
+    }
+
+    .rank.third {
+      color: #cd7f32;
+    }
+
+    .player-info {
+      flex: 1;
+    }
+
+    .player-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .player-stats {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .player-score {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+      .game-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+      }
+
+      .action-btn {
+        width: 100%;
+      }
+
+      .indicators-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <div class="particles">
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+    <div class="particle"></div>
+  </div>
+  <div class="bg-gradient"></div>
+
+  <header>
+    <h1>🎮 Stock Trading Simulator</h1>
+    <div class="header-controls">
+      <a href="dashboard.html" class="btn btn-dashboard">📊 Back to Dashboard</a>
+      <button class="btn btn-primary" id="themeToggle">☾ Dark Mode</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Game Stats -->
+    <div class="game-stats">
+      <div class="stat-card">
+        <div class="stat-label">💰 Coins Earned</div>
+        <div class="stat-value gold" id="totalCoins">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🎯 Accuracy</div>
+        <div class="stat-value" id="accuracy">0%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">✅ Correct</div>
+        <div class="stat-value green" id="correctCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">🏆 Current Streak</div>
+        <div class="stat-value" id="streak">0</div>
+      </div>
+    </div>
+
+    <!-- Game Panel -->
+    <div class="game-panel">
+      <div class="game-title">📈 Predict the Market Move</div>
+      <div class="game-subtitle">Study the technical indicators and historical price data, then predict whether you should BUY, HOLD, or SELL this stock for the next 5 days.</div>
+
+      <div id="gameContent" class="loading">Loading market data...</div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="leaderboard">
+      <div class="leaderboard-title">
+        🏆 Top Players
+      </div>
+      <div class="leaderboard-list" id="leaderboardList">
+        <div class="loading">Loading leaderboard...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://stock-signal-api.onrender.com";
+
+    // Firebase Configuration - REPLACE WITH YOUR CONFIG
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let currentUser = null;
+    let gameState = {
+      coins: 0,
+      correct: 0,
+      total: 0,
+      streak: 0,
+      bestStreak: 0
+    };
+
+    let currentChallenge = null;
+    const STOCK_POOL = ["AAPL", "MSFT", "GOOG", "TSLA", "AMZN", "NVDA", "META", "JPM"];
+
+    // Auth check
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+      } else {
+        currentUser = user;
+        loadGameState();
+        loadLeaderboard();
+        startNewChallenge();
+      }
+    });
+
+    // Load game state from Firestore
+    async function loadGameState() {
+      try {
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        if (doc.exists && doc.data().gameState) {
+          gameState = doc.data().gameState;
+          updateStatsDisplay();
+        }
+      } catch (error) {
+        console.error('Error loading game state:', error);
+      }
+    }
+
+    // Save game state to Firestore
+    async function saveGameState() {
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          gameState: gameState,
+          displayName: currentUser.displayName || currentUser.email.split('@')[0],
+          lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error saving game state:', error);
+      }
+    }
+
+    // Update stats display
+    function updateStatsDisplay() {
+      document.getElementById('totalCoins').textContent = gameState.coins;
+      document.getElementById('correctCount').textContent = gameState.correct;
+      document.getElementById('streak').textContent = gameState.streak;
+      
+      const accuracy = gameState.total > 0 
+        ? ((gameState.correct / gameState.total) * 100).toFixed(1) 
+        : 0;
+      document.getElementById('accuracy').textContent = accuracy + '%';
+    }
+
+    // Start new challenge
+    async function startNewChallenge() {
+      const gameContent = document.getElementById('gameContent');
+      gameContent.innerHTML = '<div class="loading">Loading market data...</div>';
+
+      // Pick random stock
+      const ticker = STOCK_POOL[Math.floor(Math.random() * STOCK_POOL.length)];
+
+      try {
+        // Fetch historical data
+        const resp = await fetch(`${API_BASE}/history?ticker=${ticker}`);
+        const data = await resp.json();
+
+        if (!data.history || data.history.length === 0) {
+          gameContent.innerHTML = '<div class="loading">Failed to load data. Trying another stock...</div>';
+          setTimeout(startNewChallenge, 2000);
+          return;
+        }
+
+        // Pick a random historical point (not the last 5 days, since we need future data)
+        const validPoints = data.history.filter(h => h.future_price !== null);
+        if (validPoints.length === 0) {
+          gameContent.innerHTML = '<div class="loading">Not enough historical data. Trying another stock...</div>';
+          setTimeout(startNewChallenge, 2000);
+          return;
+        }
+
+        const randomIndex = Math.floor(Math.random() * validPoints.length);
+        const point = validPoints[randomIndex];
+        
+        // Get surrounding context (10 days before)
+        const contextStart = Math.max(0, data.history.indexOf(point) - 10);
+        const contextData = data.history.slice(contextStart, data.history.indexOf(point) + 1);
+
+        // Calculate technical indicators from context
+        const prices = contextData.map(d => d.price);
+        const lastPrice = point.price;
+        const futurePrice = point.future_price;
+        
+        // Simple indicators
+        const change1d = prices.length >= 2 ? ((prices[prices.length-1] - prices[prices.length-2]) / prices[prices.length-2] * 100) : 0;
+        const ma5 = prices.slice(-5).reduce((a,b) => a+b, 0) / Math.min(5, prices.length);
+        const ma10 = prices.reduce((a,b) => a+b, 0) / prices.length;
+        
+        // Determine actual outcome
+        const actualReturn = ((futurePrice - lastPrice) / lastPrice) * 100;
+        let correctAnswer;
+        if (actualReturn > 2) correctAnswer = 'BUY';
+        else if (actualReturn < -2) correctAnswer = 'SELL';
+        else correctAnswer = 'HOLD';
+
+        currentChallenge = {
+          ticker: ticker,
+          date: point.date,
+          price: lastPrice,
+          futurePrice: futurePrice,
+          actualReturn: actualReturn,
+          correctAnswer: correctAnswer,
+          contextData: contextData,
+          indicators: {
+            change1d: change1d,
+            ma5: ma5,
+            ma10: ma10,
+            trend: ma5 > ma10 ? 'Uptrend' : 'Downtrend'
+          }
+        };
+
+        renderChallenge();
+      } catch (error) {
+        console.error('Error loading challenge:', error);
+        gameContent.innerHTML = '<div class="loading">Error loading data. Please try again.</div>';
+      }
+    }
+
+    // Render challenge
+    function renderChallenge() {
+      const gameContent = document.getElementById('gameContent');
+      const c = currentChallenge;
+
+      // Create price chart bars
+      const maxPrice = Math.max(...c.contextData.map(d => d.price));
+      const minPrice = Math.min(...c.contextData.map(d => d.price));
+      const priceRange = maxPrice - minPrice;
+
+      const chartBars = c.contextData.map(d => {
+        const height = ((d.price - minPrice) / priceRange) * 100;
+        return `
+          <div class="price-bar" style="height: ${height}%">
+            <div class="price-bar-tooltip">${d.date}<br>$${d.price.toFixed(2)}</div>
+          </div>
+        `;
+      }).join('');
+
+      gameContent.innerHTML = `
+        <div class="stock-info">
+          <div class="stock-ticker">${c.ticker}</div>
+          <div class="stock-date-range">Historical data ending on: ${c.date}</div>
+          
+          <div class="price-chart">
+            ${chartBars}
+          </div>
+
+          <div class="indicators-grid">
+            <div class="indicator">
+              <div class="indicator-label">Current Price</div>
+              <div class="indicator-value">$${c.price.toFixed(2)}</div>
+            </div>
+            <div class="indicator">
+              <div class="indicator-label">1-Day Change</div>
+              <div class="indicator-value" style="color: ${c.indicators.change1d >= 0 ? '#10b981' : '#ef4444'}">
+                ${c.indicators.change1d >= 0 ? '+' : ''}${c.indicators.change1d.toFixed(2)}%
+              </div>
+            </div>
+            <div class="indicator">
+              <div class="indicator-label">5-Day MA</div>
+              <div class="indicator-value">$${c.indicators.ma5.toFixed(2)}</div>
+            </div>
+            <div class="indicator">
+              <div class="indicator-label">10-Day MA</div>
+              <div class="indicator-value">$${c.indicators.ma10.toFixed(2)}</div>
+            </div>
+            <div class="indicator">
+              <div class="indicator-label">Trend Signal</div>
+              <div class="indicator-value" style="color: ${c.indicators.trend === 'Uptrend' ? '#10b981' : '#ef4444'}">
+                ${c.indicators.trend}
+              </div>
+            </div>
+            <div class="indicator">
+              <div class="indicator-label">MA Position</div>
+              <div class="indicator-value" style="font-size: 14px;">
+                ${c.price > c.indicators.ma5 ? 'Above 5-MA' : 'Below 5-MA'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="question">
+          <div class="question-text">What should you do with ${c.ticker}?</div>
+          <div class="question-hint">Predict the best action for the next 5 days based on the data above</div>
+        </div>
+
+        <div class="action-buttons">
+          <button class="action-btn btn-buy" onclick="makeDecision('BUY')">
+            📈 BUY<br>
+            <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Expect price increase</small>
+          </button>
+          <button class="action-btn btn-hold" onclick="makeDecision('HOLD')">
+            ⏸️ HOLD<br>
+            <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Price will stay flat</small>
+          </button>
+          <button class="action-btn btn-sell" onclick="makeDecision('SELL')">
+            📉 SELL<br>
+            <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Expect price decrease</small>
+          </button>
+        </div>
+
+        <div id="resultPanel" class="result-panel"></div>
+      `;
+    }
+
+    // Make decision
+    function makeDecision(choice) {
+      const c = currentChallenge;
+      const isCorrect = choice === c.correctAnswer;
+
+      // Update game state
+      gameState.total++;
+      if (isCorrect) {
+        gameState.correct++;
+        gameState.streak++;
+        const reward = 10 + (gameState.streak * 2); // Bonus for streaks
+        gameState.coins += reward;
+        
+        if (gameState.streak > gameState.bestStreak) {
+          gameState.bestStreak = gameState.streak;
+        }
+      } else {
+        gameState.streak = 0;
+      }
+
+      updateStatsDisplay();
+      saveGameState();
+      showResult(isCorrect, choice);
+    }
+
+    // Show result
+    function showResult(isCorrect, userChoice) {
+      const c = currentChallenge;
+      const resultPanel = document.getElementById('resultPanel');
+      resultPanel.style.display = 'block';
+      resultPanel.className = 'result-panel ' + (isCorrect ? 'correct' : 'wrong');
+
+      const reward = isCorrect ? (10 + ((gameState.streak - 1) * 2)) : 0;
+
+      let explanation = '';
+      if (c.actualReturn > 2) {
+        explanation = `The stock price increased by ${c.actualReturn.toFixed(2)}% from $${c.price.toFixed(2)} to $${c.futurePrice.toFixed(2)} over the next 5 days. `;
+      } else if (c.actualReturn < -2) {
+        explanation = `The stock price decreased by ${Math.abs(c.actualReturn).toFixed(2)}% from $${c.price.toFixed(2)} to $${c.futurePrice.toFixed(2)} over the next 5 days. `;
+      } else {
+        explanation = `The stock price stayed relatively flat, moving only ${c.actualReturn.toFixed(2)}% from $${c.price.toFixed(2)} to $${c.futurePrice.toFixed(2)}. `;
+      }
+
+      if (isCorrect) {
+        explanation += `Your ${userChoice} decision was spot on! `;
+        if (gameState.streak > 1) {
+          explanation += `You're on a ${gameState.streak}-game winning streak! 🔥`;
+        }
+      } else {
+        explanation += `The correct action was ${c.correctAnswer}. `;
+        if (c.indicators.trend === 'Uptrend' && c.correctAnswer === 'BUY') {
+          explanation += `The uptrend signal was a strong hint.`;
+        } else if (c.indicators.trend === 'Downtrend' && c.correctAnswer === 'SELL') {
+          explanation += `The downtrend signal indicated weakness.`;
+        }
+      }
+
+      resultPanel.innerHTML = `
+        <div class="result-icon">${isCorrect ? '🎉' : '💡'}</div>
+        <div class="result-title">${isCorrect ? 'Correct!' : 'Not Quite!'}</div>
+        <div class="result-text">${explanation}</div>
+        ${isCorrect ? `<div class="reward-badge">💰 +${reward} Coins Earned!</div>` : ''}
+        <button class="next-btn" onclick="startNewChallenge()">
+          ${isCorrect ? '🚀 Next Challenge' : '🔄 Try Another Stock'}
+        </button>
+      `;
+
+      // Disable action buttons
+      document.querySelectorAll('.action-btn').forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+      });
+    }
+
+    // Load leaderboard
+    async function loadLeaderboard() {
+      const leaderboardList = document.getElementById('leaderboardList');
+      
+      try {
+        const snapshot = await db.collection('users')
+          .orderBy('gameState.coins', 'desc')
+          .limit(10)
+          .get();
+
+        if (snapshot.empty) {
+          leaderboardList.innerHTML = '<div class="loading">No players yet. Be the first!</div>';
+          return;
+        }
+
+        let html = '';
+        let rank = 1;
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const gameState = data.gameState || {};
+          const name = data.displayName || data.email?.split('@')[0] || 'Anonymous';
+          const coins = gameState.coins || 0;
+          const accuracy = gameState.total > 0 ? ((gameState.correct / gameState.total) * 100).toFixed(1) : 0;
+          
+          let rankClass = '';
+          let rankEmoji = `#${rank}`;
+          if (rank === 1) { rankClass = 'first'; rankEmoji = '🥇'; }
+          else if (rank === 2) { rankClass = 'second'; rankEmoji = '🥈'; }
+          else if (rank === 3) { rankClass = 'third'; rankEmoji = '🥉'; }
+
+          html += `
+            <div class="leaderboard-item">
+              <div class="rank ${rankClass}">${rankEmoji}</div>
+              <div class="player-info">
+                <div class="player-name">${name}${doc.id === currentUser.uid ? ' (You)' : ''}</div>
+                <div class="player-stats">${gameState.total || 0} games • ${accuracy}% accuracy</div>
+              </div>
+              <div class="player-score">${coins} 💰</div>
+            </div>
+          `;
+          rank++;
+        });
+
+        leaderboardList.innerHTML = html;
+      } catch (error) {
+        console.error('Error loading leaderboard:', error);
+        leaderboardList.innerHTML = '<div class="loading">Failed to load leaderboard</div>';
+      }
+    }
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    document.body.setAttribute('data-theme', currentTheme);
+    themeToggle.textContent = currentTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
+
+    themeToggle.addEventListener('click', () => {
+      const theme = document.body.getAttribute('data-theme');
+      const newTheme = theme === 'dark' ? 'light' : 'dark';
+      document.body.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      themeToggle.textContent = newTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
+    });
+  </script>
+</body>
+</html>
