@@ -1,9 +1,10 @@
 fastapi
-uvicorn[standard]
-pydantic
+uvicorn
 numpy
 pandas
-yfinance
 scikit-learn
+yfinance
 tensorflow
+xgboost
+lightgbm
 joblib
