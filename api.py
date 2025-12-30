@@ -101,20 +101,21 @@ def compute_atr(df, window=14):
 
 
 def compute_stochastic(df, window=14):
-"""Stochastic Oscillator (%K and %D)"""
-low_min = df['Low'].rolling(window=window).min()
-high_max = df['High'].rolling(window=window).max()
-stoch_k = 100 * (df['price'] - low_min) / (high_max - low_min + 1e-9)
-stoch_d = stoch_k.rolling(window=3).mean()
-return stoch_k, stoch_d
+    """Stochastic Oscillator (%K and %D)"""
+    low_min = df["Low"].rolling(window=window).min()
+    high_max = df["High"].rolling(window=window).max()
+    stoch_k = 100 * (df["price"] - low_min) / (high_max - low_min + 1e-9)
+    stoch_d = stoch_k.rolling(window=3).mean()
+    return stoch_k, stoch_d
 
 
 def compute_williams_r(df, window=14):
-"""Williams %R Momentum Indicator"""
-high_max = df['High'].rolling(window=window).max()
-low_min = df['Low'].rolling(window=window).min()
-williams_r = -100 * (high_max - df['price']) / (high_max - low_min + 1e-9)
-return williams_r
+    """Williams %R Momentum Indicator"""
+    high_max = df["High"].rolling(window=window).max()
+    low_min = df["Low"].rolling(window=window).min()
+    williams_r = -100 * (high_max - df["price"]) / (high_max - low_min + 1e-9)
+    return williams_r
+
 
 
 # ---- request/response models ----
