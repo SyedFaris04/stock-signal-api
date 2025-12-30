@@ -78,6 +78,16 @@
       to { opacity: 1; transform: scale(1); }
     }
 
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
     body {
       font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--text-main);
@@ -169,26 +179,27 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .theme-toggle {
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
-      border: none;
-      border-radius: 999px;
+    .btn {
       padding: 8px 18px;
+      border-radius: 999px;
+      border: none;
       color: #fff;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: all 0.2s ease;
+      text-decoration: none;
       position: relative;
       overflow: hidden;
     }
-    .theme-toggle::before {
+
+    .btn::before {
       content: '';
       position: absolute;
       inset: 0;
@@ -196,17 +207,60 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-    .theme-toggle:hover::before { opacity: 1; }
-    .theme-toggle:hover {
+
+    .btn:hover::before { opacity: 1; }
+
+    .btn:hover {
       transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-primary:hover {
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-game {
+      background: linear-gradient(135deg, #f59e0b, #eab308);
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+      animation: bounce 2s ease-in-out infinite;
+    }
+
+    .btn-game:hover {
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+      animation: none;
+    }
+
+    .btn-logout {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-logout:hover {
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+    }
+
+    .user-badge {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 8px 16px;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 999px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     /* HERO PULSE */
     .hero-pulse {
       position: relative;
       z-index: 1;
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 24px auto 0;
       padding: 0 20px;
     }
@@ -219,7 +273,7 @@
     }
 
     .pulse-title {
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 700;
       color: var(--text-main);
       text-transform: uppercase;
@@ -249,18 +303,13 @@
     }
 
     .pulse-container {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 16px;
-      overflow-x: auto;
-      scroll-behavior: smooth;
       padding: 16px 0;
-      -ms-overflow-style: none;
-      scrollbar-width: none;
     }
-    .pulse-container::-webkit-scrollbar { display: none; }
 
     .pulse-card {
-      min-width: 260px;
       background: var(--bg-panel);
       border-radius: 16px;
       border: 1px solid var(--border);
@@ -304,7 +353,7 @@
     }
 
     .pulse-ticker {
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 700;
       margin-bottom: 4px;
       color: var(--text-main);
@@ -319,7 +368,7 @@
     }
 
     .pulse-proba {
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 700;
       background: linear-gradient(135deg, #10b981, #06b6d4);
       -webkit-background-clip: text;
@@ -350,18 +399,15 @@
     .page {
       position: relative;
       z-index: 1;
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 32px auto 50px;
       padding: 0 20px;
     }
 
     .layout {
       display: grid;
-      grid-template-columns: 1.8fr 1fr;
+      grid-template-columns: 2fr 1fr;
       gap: 24px;
-    }
-    @media (max-width: 1024px) { 
-      .layout { grid-template-columns: 1fr; gap: 20px; }
     }
 
     .panel {
@@ -507,7 +553,7 @@
 
     .input-row input {
       flex: 1;
-      min-width: 180px;
+      min-width: 200px;
       padding: 12px 18px;
       border: 1.5px solid rgba(148, 163, 184, 0.3);
       border-radius: 999px;
@@ -528,7 +574,7 @@
       background: #ffffff;
     }
 
-    .input-row button, .btn {
+    .input-row button {
       padding: 12px 28px;
       border-radius: 999px;
       border: none;
@@ -543,7 +589,7 @@
       position: relative;
       overflow: hidden;
     }
-    .input-row button::before, .btn::before {
+    .input-row button::before {
       content: '';
       position: absolute;
       inset: 0;
@@ -551,12 +597,12 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
-    .input-row button:hover::before, .btn:hover::before { opacity: 1; }
-    .input-row button:hover, .btn:hover {
+    .input-row button:hover::before { opacity: 1; }
+    .input-row button:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
     }
-    .input-row button:active, .btn:active {
+    .input-row button:active {
       transform: translateY(0);
     }
 
@@ -860,7 +906,7 @@
     .alert-inputs input,
     .alert-inputs select {
       flex: 1;
-      min-width: 100px;
+      min-width: 120px;
       padding: 10px 14px;
       font-size: 12px;
       font-weight: 600;
@@ -975,26 +1021,137 @@
       font-size: 13px;
     }
 
+    /* LOADING SKELETON */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(148, 163, 184, 0.1) 25%, rgba(148, 163, 184, 0.2) 50%, rgba(148, 163, 184, 0.1) 75%);
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite;
+      border-radius: 8px;
+      height: 20px;
+    }
+
+    /* RESPONSIVE - DESKTOP FIRST, THEN MOBILE */
+    @media (max-width: 1024px) {
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .pulse-container {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+    }
+
     @media (max-width: 640px) {
-      header { padding: 12px 16px; }
-      header h1 { font-size: 18px; }
-      .hero-pulse { padding: 0 12px; }
-      .pulse-card { min-width: 220px; }
-      .page { padding: 0 12px; margin: 20px auto 30px; }
-      .panel { padding: 20px; border-radius: 18px; }
-      .energy-meter { flex-direction: column; text-align: center; }
-      .circular-progress { width: 110px; height: 110px; }
-      .input-row { gap: 8px; }
-      .input-row input { min-width: 140px; font-size: 13px; padding: 10px 14px; }
-      .input-row button { padding: 10px 20px; font-size: 13px; }
-      .card { padding: 16px 18px; }
-      .info-row { font-size: 13px; }
-      .chart-header { flex-direction: column; align-items: flex-start; }
-      .portfolio-inputs, .alert-inputs { gap: 6px; }
-      .portfolio-inputs input, .alert-inputs input { min-width: 80px; font-size: 11px; }
-      .alert-notification { right: 10px; top: 70px; max-width: calc(100% - 20px); }
-      .time-machine-tooltip { min-width: 240px; font-size: 11px; }
-      .header-controls { flex-direction: column; gap: 8px; width: 100%; }
+      header {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      header h1 {
+        font-size: 18px;
+      }
+
+      .header-controls {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .hero-pulse {
+        padding: 0 12px;
+      }
+
+      .pulse-container {
+        grid-template-columns: 1fr;
+      }
+
+      .page {
+        padding: 0 12px;
+        margin: 20px auto 30px;
+      }
+
+      .panel {
+        padding: 20px;
+        border-radius: 18px;
+      }
+
+      .energy-meter {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .circular-progress {
+        width: 110px;
+        height: 110px;
+      }
+
+      .input-row {
+        gap: 8px;
+      }
+
+      .input-row input {
+        min-width: 100%;
+        font-size: 13px;
+        padding: 10px 14px;
+      }
+
+      .input-row button {
+        padding: 10px 20px;
+        font-size: 13px;
+        width: 100%;
+      }
+
+      .card {
+        padding: 16px 18px;
+      }
+
+      .info-row {
+        font-size: 13px;
+      }
+
+      .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .portfolio-inputs,
+      .alert-inputs {
+        gap: 6px;
+      }
+
+      .portfolio-inputs input,
+      .alert-inputs input {
+        min-width: 100%;
+        font-size: 11px;
+      }
+
+      .alert-notification {
+        right: 10px;
+        top: 70px;
+        max-width: calc(100% - 20px);
+      }
+
+      .time-machine-tooltip {
+        min-width: 240px;
+        font-size: 11px;
+      }
+    }
+
+    /* DESKTOP ENHANCEMENT - WIDER SCREENS */
+    @media (min-width: 1400px) {
+      .page,
+      .hero-pulse {
+        max-width: 1600px;
+      }
+
+      .pulse-container {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      header h1 {
+        font-size: 28px;
+      }
     }
   </style>
 </head>
@@ -1012,7 +1169,10 @@
   <header>
     <h1>📊 Stock Signal Dashboard</h1>
     <div class="header-controls">
-      <button class="theme-toggle" id="themeToggle">☾ Dark Mode</button>
+      <span class="user-badge" id="userInfo">Loading...</span>
+      <a href="game.html" class="btn btn-game">🎮 Play Game</a>
+      <button class="btn btn-primary" id="themeToggle">☾ Dark Mode</button>
+      <button class="btn btn-logout" id="logoutBtn">🚪 Logout</button>
     </div>
   </header>
 
@@ -1026,7 +1186,10 @@
       </div>
     </div>
     <div class="pulse-container" id="pulseContainer">
-      <div style="padding: 40px; text-align: center; color: var(--text-muted);">Loading signals...</div>
+      <div class="skeleton" style="height: 150px;"></div>
+      <div class="skeleton" style="height: 150px;"></div>
+      <div class="skeleton" style="height: 150px;"></div>
+      <div class="skeleton" style="height: 150px;"></div>
     </div>
   </div>
 
@@ -1036,7 +1199,7 @@
       <div class="panel">
         <div class="input-row">
           <input id="tickerInput" type="text" placeholder="Enter ticker (e.g. AAPL)" style="text-transform: uppercase;" />
-          <button id="getSignalBtn">Get Signal</button>
+          <button id="getSignalBtn">🔍 Get Signal</button>
         </div>
         <div class="status" id="statusText"></div>
 
@@ -1087,7 +1250,7 @@
         </div>
 
         <div class="card" id="explainCard" style="margin-top:12px; display:none;">
-          <h2 style="font-size:15px; margin-bottom:6px;">Why this signal?</h2>
+          <h2 style="font-size:15px; margin-bottom:6px;">💡 Why this signal?</h2>
           <p id="explainText" style="font-size:12px; color: var(--text-muted); margin:0; line-height:1.7;"></p>
         </div>
 
@@ -1110,7 +1273,7 @@
       <!-- RIGHT SIDEBAR -->
       <div class="panel">
         <div>
-          <div class="sidebar-title">How to read this signal</div>
+          <div class="sidebar-title">📚 How to read this signal</div>
           <ul class="explain-list">
             <li><strong>BUY</strong> – model expects a better‑than‑average 5‑day move. Combine with your own risk controls.</li>
             <li><strong>NO POSITION</strong> – model sees little or negative edge; consider staying out.</li>
@@ -1120,8 +1283,8 @@
 
         <div style="margin-top:20px;">
           <div class="sidebar-title" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>Quick watchlist</span>
-            <button id="refreshWatchlist" style="border:none;background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-weight:700;">↻ Refresh</button>
+            <span>👁️ Quick watchlist</span>
+            <button id="refreshWatchlist" style="border:none;background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-weight:700;transition:all 0.2s ease;">↻ Refresh</button>
           </div>
           <div id="watchlistSummary" style="font-size:11px;color:var(--text-muted);margin-top:6px;font-weight:600;"></div>
           <table class="watchlist-table" id="watchlistTable">
@@ -1132,16 +1295,18 @@
                 <th>Action</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+              <tr><td colspan="3" style="text-align:center; padding:20px;"><div class="skeleton"></div></td></tr>
+            </tbody>
           </table>
         </div>
 
         <div class="metrics" id="metricsBox"></div>
 
         <div style="margin-top:24px;">
-          <div class="sidebar-title">Notes for this ticker</div>
-          <textarea id="noteInput" rows="3" style="width:100%; font-size:12px; padding:10px 14px; border-radius:12px; border:1.5px solid var(--border); background:var(--bg-input); color:var(--text-main); font-family:inherit; resize:vertical;"></textarea>
-          <button id="saveNoteBtn" style="margin-top:8px; padding:8px 16px; font-size:12px; font-weight:700; border-radius:999px; border:none; background:linear-gradient(135deg, #3b82f6, #06b6d4); color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(59,130,246,0.3); transition:all 0.2s ease;">Save note</button>
+          <div class="sidebar-title">📝 Notes for this ticker</div>
+          <textarea id="noteInput" rows="3" style="width:100%; font-size:12px; padding:10px 14px; border-radius:12px; border:1.5px solid var(--border); background:var(--bg-input); color:var(--text-main); font-family:inherit; resize:vertical;" placeholder="Write your trading notes here..."></textarea>
+          <button id="saveNoteBtn" style="margin-top:8px; padding:8px 16px; font-size:12px; font-weight:700; border-radius:999px; border:none; background:linear-gradient(135deg, #3b82f6, #06b6d4); color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(59,130,246,0.3); transition:all 0.2s ease;">💾 Save note</button>
           <div id="notesList" style="margin-top:12px; max-height:140px; overflow-y:auto; font-size:11px; color:var(--text-muted); line-height:1.6;"></div>
         </div>
       </div>
@@ -1156,7 +1321,7 @@
           <input id="pfTicker" placeholder="Ticker (e.g. AAPL)" style="text-transform: uppercase;" />
           <input id="pfQty" placeholder="Quantity" type="number" min="1" />
           <input id="pfPrice" placeholder="Buy price (optional)" type="number" step="0.01" min="0" />
-          <button id="pfAddBtn">Add / Update</button>
+          <button id="pfAddBtn">➕ Add / Update</button>
         </div>
 
         <table class="portfolio-table" id="portfolioTable">
@@ -1172,7 +1337,9 @@
               <th></th>
             </tr>
           </thead>
-          <tbody></tbody>
+          <tbody>
+            <tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">No holdings yet. Add your first position above.</td></tr>
+          </tbody>
         </table>
 
         <div class="portfolio-summary" id="portfolioSummary"></div>
@@ -1198,7 +1365,7 @@
             <option value="proba">Probability above</option>
           </select>
           <input id="alertValue" placeholder="Value" type="number" step="0.01" />
-          <button id="alertAddBtn">Set Alert</button>
+          <button id="alertAddBtn">⏰ Set Alert</button>
         </div>
 
         <table class="alert-table" id="alertTable">
@@ -1212,7 +1379,9 @@
               <th></th>
             </tr>
           </thead>
-          <tbody></tbody>
+          <tbody>
+            <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No alerts set. Create your first alert above.</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -1243,7 +1412,7 @@
   </div>
 
   <footer>
-    Powered by LSTM + Random Forest stock selection model
+    Powered by LSTM + Random Forest stock selection model | Made with ❤️ by AI
   </footer>
 
   <script>
@@ -1282,26 +1451,18 @@
     function updateUserInfo() {
       if (currentUser) {
         const userName = currentUser.displayName || currentUser.email.split('@')[0];
-        const headerControls = document.querySelector('.header-controls');
-        
-        const userInfo = document.createElement('div');
-        userInfo.style.cssText = 'display:flex; align-items:center; gap:12px;';
-        userInfo.innerHTML = `
-          <span style="font-size:13px; color:var(--text-muted); font-weight:600; padding:8px 16px; background:rgba(59,130,246,0.1); border-radius:999px; border:1px solid rgba(59,130,246,0.2);">Welcome, ${userName}</span>
-          <button id="logoutBtn" style="padding:8px 18px; border-radius:999px; border:none; background:linear-gradient(135deg, #ef4444, #dc2626); color:#fff; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(239,68,68,0.4); transition:all 0.2s ease; font-size:13px;">🚪 Logout</button>
-        `;
-        headerControls.insertBefore(userInfo, headerControls.firstChild);
-
-        document.getElementById('logoutBtn').addEventListener('click', async () => {
-          try {
-            await auth.signOut();
-            window.location.href = 'index.html';
-          } catch (error) {
-            console.error('Logout error:', error);
-          }
-        });
+        document.getElementById('userInfo').innerHTML = `👤 ${userName}`;
       }
     }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await auth.signOut();
+        window.location.href = 'index.html';
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
+    });
 
     async function loadUserData() {
       if (!currentUser) return;
@@ -1465,7 +1626,7 @@
 
     async function fetchSignal(ticker) {
       try {
-        document.getElementById("statusText").textContent = `Fetching signal for ${ticker}...`;
+        document.getElementById("statusText").textContent = `🔍 Fetching signal for ${ticker}...`;
 
         const resp = await fetch(`${API_BASE}/predict?ticker=${ticker}`);
         if (!resp.ok) {
@@ -1519,7 +1680,7 @@
         return data;
       } catch (err) {
         console.error(err);
-        document.getElementById("statusText").textContent = "Error fetching signal. Please try again.";
+        document.getElementById("statusText").textContent = "❌ Error fetching signal. Please try again.";
         return null;
       }
     }
@@ -1767,7 +1928,10 @@
 
     document.getElementById("getSignalBtn").addEventListener("click", async () => {
       const ticker = document.getElementById("tickerInput").value.trim().toUpperCase();
-      if (!ticker) return;
+      if (!ticker) {
+        document.getElementById("statusText").textContent = "⚠️ Please enter a ticker symbol";
+        return;
+      }
 
       const signalData = await fetchSignal(ticker);
       if (signalData) {
@@ -1780,7 +1944,7 @@
       displayNotes(ticker);
     });
 
-    // QUICK WATCHLIST - FIXED
+    // QUICK WATCHLIST
     async function loadWatchlist() {
       const container = document.getElementById("pulseContainer");
       container.innerHTML = "";
@@ -1814,7 +1978,7 @@
           card.addEventListener("click", () => {
             document.getElementById("tickerInput").value = ticker;
             document.getElementById("getSignalBtn").click();
-            window.scrollTo({ top: 300, behavior: 'smooth' });
+            window.scrollTo({ top: 400, behavior: 'smooth' });
           });
 
           container.appendChild(card);
@@ -1856,7 +2020,7 @@
           row.addEventListener("click", () => {
             document.getElementById("tickerInput").value = ticker;
             document.getElementById("getSignalBtn").click();
-            window.scrollTo({ top: 300, behavior: 'smooth' });
+            window.scrollTo({ top: 400, behavior: 'smooth' });
           });
 
           tbody.appendChild(row);
@@ -1870,17 +2034,24 @@
     }
 
     document.getElementById("refreshWatchlist").addEventListener("click", () => {
-      loadWatchlistTable();
-      loadWatchlist();
+      document.getElementById("refreshWatchlist").textContent = "⏳ Loading...";
+      loadWatchlistTable().then(() => {
+        loadWatchlist().then(() => {
+          document.getElementById("refreshWatchlist").textContent = "↻ Refresh";
+        });
+      });
     });
 
-    // PORTFOLIO - FIXED
+    // PORTFOLIO
     function addToPortfolio() {
       const ticker = document.getElementById("pfTicker").value.trim().toUpperCase();
       const qty = parseInt(document.getElementById("pfQty").value);
       const price = parseFloat(document.getElementById("pfPrice").value) || null;
 
-      if (!ticker || !qty || qty <= 0) return;
+      if (!ticker || !qty || qty <= 0) {
+        alert("⚠️ Please enter valid ticker and quantity");
+        return;
+      }
 
       const items = JSON.parse(localStorage.getItem(PF_KEY) || "[]");
       const existing = items.find(x => x.ticker === ticker);
@@ -1900,9 +2071,21 @@
       document.getElementById("pfTicker").value = "";
       document.getElementById("pfQty").value = "";
       document.getElementById("pfPrice").value = "";
+
+      // Show success feedback
+      const btn = document.getElementById("pfAddBtn");
+      const originalText = btn.textContent;
+      btn.textContent = "✅ Added!";
+      btn.style.background = "linear-gradient(135deg, #10b981, #06b6d4)";
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = "";
+      }, 2000);
     }
 
     function removeFromPortfolio(ticker) {
+      if (!confirm(`Remove ${ticker} from portfolio?`)) return;
+      
       let items = JSON.parse(localStorage.getItem(PF_KEY) || "[]");
       items = items.filter(x => x.ticker !== ticker);
       localStorage.setItem(PF_KEY, JSON.stringify(items));
@@ -1917,7 +2100,7 @@
 
       if (items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">No holdings yet. Add your first position above.</td></tr>';
-        document.getElementById("portfolioSummary").textContent = "No holdings yet.";
+        document.getElementById("portfolioSummary").textContent = "";
         document.getElementById("diversitySection").style.display = "none";
         return;
       }
@@ -1937,26 +2120,29 @@
           totalValue += value;
 
           let plText = "—";
+          let plColor = "inherit";
           if (item.buyPrice) {
             const cost = item.qty * item.buyPrice;
             totalCost += cost;
             const pl = value - cost;
             const plPct = (pl / cost) * 100;
             plText = `$${pl.toFixed(2)} (${plPct >= 0 ? '+' : ''}${plPct.toFixed(2)}%)`;
+            plColor = pl >= 0 ? '#10b981' : '#ef4444';
           }
 
           const badge = formatAction(action, proba);
 
           const row = document.createElement("tr");
+          row.style.transition = "all 0.2s ease";
           row.innerHTML = `
             <td style="font-weight:700;">${item.ticker}</td>
             <td>${item.qty}</td>
             <td>${item.buyPrice ? '$' + item.buyPrice.toFixed(2) : '—'}</td>
             <td>$${lastPrice.toFixed(2)}</td>
             <td>$${value.toFixed(2)}</td>
-            <td style="color:${plText.includes('+') ? '#10b981' : plText.includes('-') ? '#ef4444' : 'inherit'}; font-weight:700;">${plText}</td>
+            <td style="color:${plColor}; font-weight:700;">${plText}</td>
             <td><span class="${badge.cls}">${badge.text}</span></td>
-            <td><button onclick="removeFromPortfolio('${item.ticker}')" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:999px; cursor:pointer; font-size:11px; font-weight:700;">Remove</button></td>
+            <td><button onclick="removeFromPortfolio('${item.ticker}')" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:999px; cursor:pointer; font-size:11px; font-weight:700; transition:all 0.2s ease;">❌ Remove</button></td>
           `;
           tbody.appendChild(row);
         } catch (err) {
@@ -1968,9 +2154,9 @@
       const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
       document.getElementById("portfolioSummary").innerHTML = `
-        <strong>Total Value:</strong> $${totalValue.toFixed(2)} <br>
-        ${totalCost > 0 ? `<strong>Total Cost:</strong> $${totalCost.toFixed(2)} <br>` : ''}
-        ${totalCost > 0 ? `<strong>Total P/L:</strong> <span style="color:${totalPL >= 0 ? '#10b981' : '#ef4444'}; font-weight:700;">$${totalPL.toFixed(2)} (${totalPL >= 0 ? '+' : ''}${totalPLPct.toFixed(2)}%)</span>` : ''}
+        <strong>📊 Total Value:</strong> $${totalValue.toFixed(2)} <br>
+        ${totalCost > 0 ? `<strong>💰 Total Cost:</strong> $${totalCost.toFixed(2)} <br>` : ''}
+        ${totalCost > 0 ? `<strong>📈 Total P/L:</strong> <span style="color:${totalPL >= 0 ? '#10b981' : '#ef4444'}; font-weight:700;">$${totalPL.toFixed(2)} (${totalPL >= 0 ? '+' : ''}${totalPLPct.toFixed(2)}%)</span>` : ''}
       `;
 
       renderDiversity(items);
@@ -2027,7 +2213,10 @@
       const type = document.getElementById("alertType").value;
       const value = parseFloat(document.getElementById("alertValue").value);
 
-      if (!ticker || !value || value <= 0) return;
+      if (!ticker || !value || value <= 0) {
+        alert("⚠️ Please enter valid ticker and value");
+        return;
+      }
 
       const alerts = JSON.parse(localStorage.getItem(ALERT_KEY) || "[]");
       alerts.push({ ticker, type, targetValue: value, triggered: false });
@@ -2037,6 +2226,14 @@
 
       document.getElementById("alertTicker").value = "";
       document.getElementById("alertValue").value = "";
+
+      // Show success feedback
+      const btn = document.getElementById("alertAddBtn");
+      const originalText = btn.textContent;
+      btn.textContent = "✅ Alert Set!";
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
     }
 
     function removeAlert(index) {
@@ -2088,7 +2285,7 @@
             <td>${target}</td>
             <td>${current}</td>
             <td><span style="color:${triggered ? '#10b981' : '#f59e0b'}; font-weight:700;">${triggered ? '✅ Triggered' : '⏳ Pending'}</span></td>
-            <td><button onclick="removeAlert(${i})" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:999px; cursor:pointer; font-size:11px; font-weight:700;">Remove</button></td>
+            <td><button onclick="removeAlert(${i})" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:999px; cursor:pointer; font-size:11px; font-weight:700;">❌ Remove</button></td>
           `;
           tbody.appendChild(row);
         } catch (err) {
@@ -2146,9 +2343,11 @@
           const currentPrice = parseFloat(data.last_price);
 
           let performance = "—";
+          let perfColor = "inherit";
           if (entry.entryPrice) {
             const change = ((currentPrice - entry.entryPrice) / entry.entryPrice) * 100;
             performance = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+            perfColor = change >= 0 ? '#10b981' : '#ef4444';
           }
 
           const row = document.createElement("tr");
@@ -2159,7 +2358,7 @@
             <td>${entry.entryProba}</td>
             <td>${entry.entryPrice ? '$' + entry.entryPrice.toFixed(2) : '—'}</td>
             <td>$${currentPrice.toFixed(2)}</td>
-            <td style="color:${performance.includes('+') ? '#10b981' : performance.includes('-') ? '#ef4444' : 'inherit'}; font-weight:700;">${performance}</td>
+            <td style="color:${perfColor}; font-weight:700;">${performance}</td>
           `;
           tbody.appendChild(row);
         } catch (err) {
@@ -2168,12 +2367,15 @@
       }
     }
 
-    // NOTES
+     // NOTES
     function saveNote() {
       const ticker = document.getElementById("tickerInput").value.trim().toUpperCase();
       const noteText = document.getElementById("noteInput").value.trim();
 
-      if (!ticker || !noteText) return;
+      if (!ticker || !noteText) {
+        alert("⚠️ Please enter a ticker first and write a note");
+        return;
+      }
 
       const allNotes = JSON.parse(localStorage.getItem('notes') || "{}");
       if (!allNotes[ticker]) {
@@ -2189,6 +2391,14 @@
       saveToFirestore('notes', allNotes);
       document.getElementById("noteInput").value = "";
       displayNotes(ticker);
+
+      // Show success feedback
+      const btn = document.getElementById("saveNoteBtn");
+      const originalText = btn.textContent;
+      btn.textContent = "✅ Saved!";
+      setTimeout(() => {
+        btn.textContent = originalText;
+      }, 2000);
     }
 
     function displayNotes(ticker = null) {
@@ -2222,24 +2432,26 @@
     const themeToggle = document.getElementById('themeToggle');
     const currentTheme = localStorage.getItem('theme') || 'dark';
     document.body.setAttribute('data-theme', currentTheme);
-    themeToggle.textContent = currentTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
+    themeToggle.textContent = currentTheme === 'dark' ? '☾ Dark Mode' : '☀️ Light Mode';
 
     themeToggle.addEventListener('click', () => {
       const theme = document.body.getAttribute('data-theme');
       const newTheme = theme === 'dark' ? 'light' : 'dark';
       document.body.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
-      themeToggle.textContent = newTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
+      themeToggle.textContent = newTheme === 'dark' ? '☾ Dark Mode' : '☀️ Light Mode';
 
-      if (priceChart) {
-        const data = timeMachineData;
+      // Redraw chart with new colors
+      if (priceChart && timeMachineData) {
         const range = document.querySelector('.range-buttons button.active')?.getAttribute('data-range') || 'ALL';
-        renderChart(data, range);
+        renderChart(timeMachineData, range);
       }
     });
 
     // INITIALIZATION
     function init() {
+      console.log("🚀 Initializing dashboard...");
+      
       loadWatchlist();
       loadWatchlistTable();
       renderPortfolioTable();
@@ -2256,9 +2468,19 @@
       setInterval(() => {
         renderPortfolioTable();
       }, 5 * 60000);
+
+      // Auto-refresh watchlist every 10 minutes
+      setInterval(() => {
+        loadWatchlist();
+        loadWatchlistTable();
+      }, 10 * 60000);
+
+      console.log("✅ Dashboard initialized successfully!");
     }
 
-    // Don't call init immediately, wait for auth
+    // Make functions global for onclick handlers
+    window.removeFromPortfolio = removeFromPortfolio;
+    window.removeAlert = removeAlert;
   </script>
 </body>
 </html>
