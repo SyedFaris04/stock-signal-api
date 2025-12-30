@@ -1,4 +1,4 @@
-# api.py  –  Honest 6‑model ensemble API for your website
+# api.py – Honest 6‑model ensemble API for your website
 
 from typing import Any, Dict, List
 from datetime import datetime, timedelta
@@ -15,7 +15,42 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # =========================================================
-# 1. LOAD MODELS, SCALERS, METADATA
+# 1. CUSTOM LAYERS (NEEDED TO LOAD LSTM MODEL)
+# =========================================================
+
+class AttentionLayer(tf.keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.W = self.add_weight(
+            name="attention_weight",
+            shape=(input_shape[-1], 1),
+            initializer="glorot_uniform",
+            trainable=True,
+        )
+        self.b = self.add_weight(
+            name="attention_bias",
+            shape=(input_shape[1], 1),
+            initializer="zeros",
+            trainable=True,
+        )
+        super().build(input_shape)
+
+    def call(self, x):
+        import tensorflow.keras.backend as K
+
+        e = K.tanh(K.dot(x, self.W) + self.b)
+        a = K.softmax(e, axis=1)
+        output = x * a
+        return K.sum(output, axis=1)
+
+    def get_config(self):
+        base_config = super().get_config()
+        return base_config
+
+# =========================================================
+# 2. LOAD MODELS, SCALERS, METADATA
 # =========================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,11 +68,13 @@ lgb_model = load_pickle("lgb_model.pkl")
 
 lstm_model = tf.keras.models.load_model(
     os.path.join(BASE_DIR, "lstm_attention_model.keras"),
-    compile=False
+    compile=False,
+    custom_objects={"AttentionLayer": AttentionLayer},
 )
+
 transformer_model = tf.keras.models.load_model(
     os.path.join(BASE_DIR, "transformer_model.keras"),
-    compile=False
+    compile=False,
 )
 
 FEATURES: List[str] = load_pickle("features.pkl")
@@ -54,11 +91,10 @@ W_LOG = ensemble_weights["logreg_weight"]
 W_XGB = ensemble_weights["xgb_weight"]
 W_LGB = ensemble_weights["lgb_weight"]
 
-# to keep compatibility with your old code
-ACTIVE_FEATURES = FEATURES
+ACTIVE_FEATURES = FEATURES  # keep old name for compatibility
 
 # =========================================================
-# 2. FEATURE ENGINEERING (MATCHES TRAINING PIPELINE)
+# 3. FEATURE ENGINEERING (MATCHES TRAINING)
 # =========================================================
 
 def compute_rsi(series, window=14):
@@ -153,10 +189,6 @@ def compute_advanced_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def last_lookback_window(ticker: str) -> pd.DataFrame | None:
-    """
-    Download recent data for ticker and compute all features.
-    Returns last LOOKBACK_DAYS rows or None if not enough data.
-    """
     end = datetime.utcnow()
     start = end - timedelta(days=365 * 3)
 
@@ -170,7 +202,6 @@ def last_lookback_window(ticker: str) -> pd.DataFrame | None:
     df = df[["Open", "High", "Low", "Close", "Volume"]].copy()
     df["price"] = df["Close"]
 
-    # base features
     df["ret_1d"]  = df["price"].pct_change()
     df["ret_5d"]  = df["price"].pct_change(5)
     df["ret_20d"] = df["price"].pct_change(20)
@@ -208,7 +239,7 @@ def last_lookback_window(ticker: str) -> pd.DataFrame | None:
     return df.iloc[-LOOKBACK_DAYS:]
 
 # =========================================================
-# 3. UTILS FOR SIGNAL + EXPLANATION
+# 4. SIGNAL / EXPLANATION
 # =========================================================
 
 def action_from_proba(p: float) -> str:
@@ -259,25 +290,19 @@ def build_explanation(row: pd.Series) -> str:
     bb_low = float(row.get("bb_low", np.nan))
     if not np.isnan(bb_up) and not np.isnan(bb_low) and not np.isnan(price):
         if price > bb_up:
-            msgs.append("Price is above the upper Bollinger Band (possibly overbought).")
+            msgs.append("Price is above the upper Bollinger Band (overbought risk).")
         elif price < bb_low:
-            msgs.append("Price is below the lower Bollinger Band (possibly oversold).")
+            msgs.append("Price is below the lower Bollinger Band (oversold opportunity).")
 
     if not msgs:
         return "Indicators are mixed; consider additional factors before trading."
     return " ".join(msgs)
 
 # =========================================================
-# 4. ENSEMBLE PREDICTION LOGIC
+# 5. ENSEMBLE PREDICTION
 # =========================================================
 
 def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
-    """
-    Given the last LOOKBACK_DAYS feature window, compute:
-    - individual model probabilities
-    - ensemble probability
-    """
-    # tabular last row
     X_tab_all = scaler.transform(window[ACTIVE_FEATURES])
     x_last = X_tab_all[-1:].astype(np.float32)
 
@@ -286,7 +311,6 @@ def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
     p_xgb = float(xgb_model.predict_proba(x_last)[:, 1][0])
     p_lgb = float(lgb_model.predict_proba(x_last)[:, 1][0])
 
-    # sequence last 60 days
     seq_raw = window[ACTIVE_FEATURES].values.astype(np.float32)
     seq_scaled = scaler_lstm.transform(seq_raw)
     X_seq = seq_scaled[np.newaxis, ...]
@@ -314,7 +338,7 @@ def ensemble_proba_for_window(window: pd.DataFrame) -> Dict[str, Any]:
     }
 
 # =========================================================
-# 5. FASTAPI APP + SCHEMAS
+# 6. FASTAPI APP + ENDPOINTS
 # =========================================================
 
 class SignalRequest(BaseModel):
@@ -337,10 +361,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ---------------------------------------------------------
-# /signal  (POST, structured response)
-# ---------------------------------------------------------
 
 @app.post("/signal", response_model=SignalResponse)
 def post_signal(req: SignalRequest):
@@ -367,10 +387,6 @@ def post_signal(req: SignalRequest):
         action=action_from_proba(proba),
         explanation=build_explanation(last_row),
     )
-
-# ---------------------------------------------------------
-# /predict  (GET, used by your dashboard)
-# ---------------------------------------------------------
 
 @app.get("/predict")
 def get_predict(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
@@ -412,10 +428,6 @@ def get_predict(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
         "model_agreement": float(model_agreement),
     }
 
-# ---------------------------------------------------------
-# /history  (simplified: price + ensemble prob per day)
-# ---------------------------------------------------------
-
 @app.get("/history")
 def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
     window = last_lookback_window(ticker)
@@ -428,7 +440,6 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
             "proba": [],
         }
 
-    # For simplicity, compute ensemble only on last window
     probs = ensemble_proba_for_window(window)
     proba = float(probs["ensemble"])
 
@@ -437,7 +448,7 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
         history.append({
             "date": str(idx.date()),
             "price": float(row["price"]),
-            "probability": proba,  # same prob for visualization
+            "probability": proba,
         })
 
     return {
@@ -447,10 +458,6 @@ def get_history(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
         "price": window["price"].round(2).tolist(),
         "proba": [proba] * len(window),
     }
-
-# ---------------------------------------------------------
-# /metrics  (very simple summary; you can expand later)
-# ---------------------------------------------------------
 
 @app.get("/metrics")
 def get_metrics(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
@@ -462,10 +469,6 @@ def get_metrics(ticker: str = Query(..., min_length=1)) -> Dict[str, Any]:
         "sharpe": metadata.get("sharpe"),
         "model_weights": ensemble_weights,
     }
-
-# ---------------------------------------------------------
-# root
-# ---------------------------------------------------------
 
 @app.get("/")
 def root():
