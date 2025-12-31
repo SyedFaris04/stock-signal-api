@@ -1846,10 +1846,15 @@
         btn.textContent = newTheme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode";
       });
 
-      // Dashboard navigation
-      document.getElementById("dashboardBtn").addEventListener("click", () => {
-        window.location.href = "dashboard.html";
-      });
+    // Dashboard navigation
+const dashboardBtn = document.getElementById("dashboardBtn");
+if (dashboardBtn) {
+  dashboardBtn.addEventListener("click", () => {
+    console.log("Navigating to dashboard");
+    window.location.href = "dashboard.html";
+  });
+}
+
 
       // Logout
       document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -1861,3 +1866,4 @@
   </script>
 </body>
 </html>
+
