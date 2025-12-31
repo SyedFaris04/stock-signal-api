@@ -1170,7 +1170,7 @@
     <h1>📊 Stock Signal Dashboard</h1>
     <div class="header-controls">
       <span class="user-badge" id="userInfo">Loading...</span>
-      <a href="game.html" class="btn btn-game">🎮 Play Game</a>
+      <button class="btn btn-game" id="playGameBtn">🎮 Play Game</button>
       <button class="btn btn-primary" id="themeToggle">☾ Dark Mode</button>
       <button class="btn btn-logout" id="logoutBtn">🚪 Logout</button>
     </div>
@@ -2481,6 +2481,12 @@
     // Make functions global for onclick handlers
     window.removeFromPortfolio = removeFromPortfolio;
     window.removeAlert = removeAlert;
+
+    // Play Game button handler
+  document.getElementById('playGameBtn').addEventListener('click', () => {
+    window.location.href = 'game.html';
+     });
   </script>
 </body>
 </html>
+
