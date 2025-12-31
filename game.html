@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Stock Trading Simulator - Learn & Earn</title>
+  <title>Stock Trading Academy - Complete Learning Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
     :root {
@@ -23,6 +26,7 @@
       --accent-green: #10b981;
       --accent-red: #ef4444;
       --accent-gold: #f59e0b;
+      --accent-purple: #a855f7;
       --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.3);
       --shadow-strong: 0 20px 60px rgba(15, 23, 42, 0.9);
     }
@@ -46,11 +50,6 @@
       100% { background-position: 0% 50%; }
     }
 
-    @keyframes floatParticle {
-      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-      50% { transform: translate(20px, -30px) scale(1.1); opacity: 0.9; }
-    }
-
     @keyframes slideIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -61,16 +60,15 @@
       50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.7); }
     }
 
-    @keyframes coinFlip {
-      0% { transform: rotateY(0deg) scale(1); }
-      50% { transform: rotateY(180deg) scale(1.2); }
-      100% { transform: rotateY(360deg) scale(1); }
-    }
-
     @keyframes celebrate {
       0%, 100% { transform: scale(1); }
       25% { transform: scale(1.1) rotate(-5deg); }
       75% { transform: scale(1.1) rotate(5deg); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
     }
 
     body {
@@ -89,713 +87,936 @@
       background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
     }
 
-    .particles {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 20px;
     }
 
-    .particle {
-      position: absolute;
-      width: 4px;
-      height: 4px;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
-      border-radius: 50%;
-      animation: floatParticle 8s ease-in-out infinite;
-    }
-    .particle:nth-child(1) { top: 10%; left: 20%; animation-delay: 0s; animation-duration: 7s; }
-    .particle:nth-child(2) { top: 60%; left: 80%; animation-delay: 2s; animation-duration: 9s; }
-    .particle:nth-child(3) { top: 30%; left: 50%; animation-delay: 4s; animation-duration: 6s; }
-    .particle:nth-child(4) { top: 80%; left: 10%; animation-delay: 1s; animation-duration: 8s; }
-    .particle:nth-child(5) { top: 40%; left: 70%; animation-delay: 3s; animation-duration: 7.5s; }
-    .particle:nth-child(6) { top: 70%; left: 40%; animation-delay: 5s; animation-duration: 6.5s; }
-
-    .bg-gradient {
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(circle at 15% 25%, rgba(59, 130, 246, 0.15), transparent 50%),
-        radial-gradient(circle at 85% 75%, rgba(16, 185, 129, 0.12), transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08), transparent 60%);
-      pointer-events: none;
-      z-index: 0;
-      filter: blur(60px);
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      background: var(--bg-panel);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      animation: slideIn 0.5s ease;
     }
 
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      background: rgba(15, 23, 42, 0.75);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.3);
-      padding: 16px 32px;
+    .header-left {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
-      transition: all 0.3s ease;
+      gap: 16px;
     }
 
-    [data-theme="light"] header {
-      background: rgba(255, 255, 255, 0.85);
-      border-bottom-color: rgba(203, 213, 225, 0.8);
-      box-shadow: 0 4px 20px rgba(100, 116, 139, 0.15);
-    }
-
-    header h1 {
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
-    .header-controls {
+    .level-badge {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, var(--accent-gold), #d97706);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
       display: flex;
       align-items: center;
+      gap: 8px;
+    }
+
+    .header-controls {
+      display: flex;
       gap: 12px;
+      align-items: center;
     }
 
     .btn {
-      padding: 8px 18px;
-      border-radius: 999px;
+      padding: 10px 20px;
       border: none;
-      color: #fff;
-      font-size: 13px;
+      border-radius: 10px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      text-decoration: none;
+      transition: all 0.3s ease;
+      font-size: 14px;
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: white;
     }
 
-    .btn-dashboard {
-      background: linear-gradient(135deg, #10b981, #06b6d4);
-    }
-
-    .btn:hover {
+    .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
     }
 
-    .container {
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    /* Main Layout - 3 Column */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr 380px;
+      gap: 20px;
+      animation: slideIn 0.6s ease;
+    }
+
+    /* Left Sidebar - Learning Progress */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-icon {
+      font-size: 24px;
+    }
+
+    /* Learning Path */
+    .learning-path {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .lesson-item {
+      padding: 16px;
+      background: var(--bg-input);
+      border-radius: 12px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.3s ease;
       position: relative;
-      z-index: 1;
-      max-width: 1200px;
-      margin: 32px auto;
-      padding: 0 20px;
+      overflow: hidden;
+    }
+
+    .lesson-item:hover {
+      border-color: var(--accent-blue);
+      transform: translateX(4px);
+    }
+
+    .lesson-item.active {
+      border-color: var(--accent-green);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+    }
+
+    .lesson-item.completed {
+      border-color: var(--accent-gold);
+    }
+
+    .lesson-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .lesson-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .lesson-number {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .lesson-status {
+      font-size: 18px;
+    }
+
+    .lesson-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .lesson-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .lesson-progress {
+      margin-top: 8px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .lesson-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+      transition: width 0.5s ease;
+    }
+
+    /* XP Progress Bar */
+    .xp-container {
+      margin-top: 16px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
+      border-radius: 12px;
+      border: 1px solid var(--accent-purple);
+    }
+
+    .xp-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .xp-bar {
+      height: 12px;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .xp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-purple), var(--accent-blue));
+      transition: width 0.5s ease;
+      box-shadow: 0 0 10px var(--accent-purple);
+    }
+
+    /* Achievements */
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .achievement-badge {
+      padding: 16px;
+      background: var(--bg-input);
+      border-radius: 12px;
+      text-align: center;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .achievement-badge:hover {
+      transform: scale(1.05);
+    }
+
+    .achievement-badge.unlocked {
+      border-color: var(--accent-gold);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1));
+      animation: pulseGlow 2s infinite;
+    }
+
+    .achievement-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+      filter: grayscale(100%);
+    }
+
+    .achievement-badge.unlocked .achievement-icon {
+      filter: grayscale(0%);
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .achievement-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .achievement-badge.unlocked .achievement-name {
+      color: var(--accent-gold);
+    }
+
+    /* Right Sidebar - Learning Resources */
+    .resources-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+
+    /* Learning Encyclopedia */
+    .encyclopedia-item {
+      padding: 16px;
+      background: var(--bg-input);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .encyclopedia-item:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-2px);
+    }
+
+    .encyclopedia-term {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+    }
+
+    .encyclopedia-definition {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .encyclopedia-example {
+      font-size: 11px;
+      padding: 8px;
+      background: rgba(59, 130, 246, 0.1);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent-blue);
+      font-style: italic;
+    }
+
+    /* Strategy Cards */
+    .strategy-card {
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1));
+      border-radius: 12px;
+      border: 2px solid var(--accent-green);
+    }
+
+    .strategy-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent-green);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .strategy-steps {
+      list-style: none;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .strategy-steps li {
+      padding: 8px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .strategy-steps li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    /* Quiz Mode */
+    .quiz-container {
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1));
+      border-radius: 16px;
+      border: 2px solid var(--accent-purple);
+    }
+
+    .quiz-question {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--text-main);
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .quiz-option {
+      padding: 16px;
+      background: var(--bg-input);
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent-blue);
+      transform: translateX(4px);
+    }
+
+    .quiz-option.correct {
+      border-color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.2);
+    }
+
+    .quiz-option.incorrect {
+      border-color: var(--accent-red);
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Main Game Area */
+    .game-area {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Mode Selector with Tutorial */
+    .mode-selector {
+      display: flex;
+      gap: 12px;
+      padding: 8px;
+      background: var(--bg-panel);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 16px;
+      background: transparent;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .mode-btn:hover {
+      background: var(--bg-input);
+    }
+
+    .mode-btn.active {
+      background: var(--bg-input);
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .mode-icon {
+      font-size: 28px;
+    }
+
+    .mode-name {
+      font-size: 14px;
+    }
+
+    .mode-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Game Panel with Enhanced Learning */
+    .game-panel {
+      background: var(--bg-panel);
+      border-radius: 16px;
+      padding: 32px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+    }
+
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .stock-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stock-ticker {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stock-date {
+      font-size: 14px;
+      color: var(--text-muted);
     }
 
     .game-stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
       margin-bottom: 24px;
     }
 
     .stat-card {
-      background: var(--bg-panel);
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      padding: 20px;
-      backdrop-filter: blur(20px);
-      box-shadow: var(--shadow-strong);
-      animation: slideIn 0.5s ease forwards;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-glow);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 8px;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .stat-value.gold {
-      background: linear-gradient(135deg, #f59e0b, #eab308);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .stat-value.green {
-      background: linear-gradient(135deg, #10b981, #06b6d4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .game-layout {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 24px;
-    }
-
-    .game-panel {
-      background: var(--bg-panel);
-      border-radius: 24px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-strong), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      padding: 32px;
-      backdrop-filter: blur(24px) saturate(180%);
-      animation: slideIn 0.6s ease forwards;
-    }
-
-    .game-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .game-subtitle {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-      font-weight: 500;
-      line-height: 1.6;
-    }
-
-    .stock-info {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.05));
-      border-radius: 16px;
-      border: 1px solid rgba(59, 130, 246, 0.25);
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-
-    .stock-ticker {
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 12px;
-    }
-
-    .stock-date-range {
-      font-size: 13px;
-      color: var(--text-muted);
-      font-weight: 600;
-      margin-bottom: 16px;
-    }
-
-    .indicators-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      margin-top: 16px;
-    }
-
-    .indicator {
-      background: rgba(15, 23, 42, 0.5);
-      padding: 12px;
+      background: var(--bg-input);
+      padding: 16px;
       border-radius: 12px;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-
-    .indicator-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-    }
-
-    .indicator-value {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    .price-chart {
-      display: flex;
-      align-items: flex-end;
-      gap: 4px;
-      height: 120px;
-      margin: 24px 0;
-      padding: 12px;
-      background: rgba(15, 23, 42, 0.3);
-      border-radius: 12px;
-      overflow-x: auto;
-    }
-
-    .price-bar {
-      flex: 1;
-      min-width: 8px;
-      background: linear-gradient(180deg, #3b82f6, #06b6d4);
-      border-radius: 4px 4px 0 0;
-      transition: all 0.3s ease;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .price-bar:hover {
-      background: linear-gradient(180deg, #10b981, #06b6d4);
-      transform: scaleY(1.05);
-    }
-
-    .price-bar-tooltip {
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.95);
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      color: #f1f5f9;
-      white-space: nowrap;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-      z-index: 10;
-    }
-
-    .price-bar:hover .price-bar-tooltip {
-      opacity: 1;
-    }
-
-    .question {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(234, 179, 8, 0.05));
-      border: 2px solid rgba(245, 158, 11, 0.3);
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 24px;
+      border: 1px solid var(--border);
       text-align: center;
     }
 
-    .question-text {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 8px;
+    .stat-value {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      margin-bottom: 4px;
     }
 
-    .question-hint {
-      font-size: 13px;
+    .stat-label {
+      font-size: 11px;
       color: var(--text-muted);
-      font-weight: 500;
+      font-weight: 600;
     }
 
+    /* Enhanced Learning Hint Panel */
+    .learning-hint {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1));
+      border: 2px solid var(--accent-purple);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .learning-hint.show {
+      display: block;
+      animation: slideIn 0.5s ease;
+    }
+
+    .hint-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .hint-icon {
+      font-size: 32px;
+    }
+
+    .hint-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent-purple);
+    }
+
+    .hint-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-main);
+    }
+
+    .hint-bullets {
+      list-style: none;
+      margin-top: 12px;
+    }
+
+    .hint-bullets li {
+      padding: 8px 0;
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .hint-bullets li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--accent-green);
+      font-weight: bold;
+    }
+
+    /* Interactive Chart Section */
+    .chart-indicators-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .chart-container {
+      background: var(--bg-input);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      height: 400px;
+    }
+
+    .indicators-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .indicator-card {
+      background: var(--bg-input);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .indicator-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-2px);
+    }
+
+    .indicator-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .indicator-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-icon {
+      cursor: help;
+      font-size: 14px;
+      color: var(--accent-blue);
+    }
+
+    .indicator-value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .indicator-signal {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .signal-bullish {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+    }
+
+    .signal-bearish {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+    }
+
+    .signal-neutral {
+      background: rgba(148, 163, 184, 0.2);
+      color: var(--text-muted);
+    }
+
+    /* Enhanced Tooltip */
+    .tooltip {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      margin-top: 8px;
+      padding: 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      width: 280px;
+      z-index: 100;
+      display: none;
+      box-shadow: var(--shadow-strong);
+    }
+
+    .indicator-card:hover .tooltip {
+      display: block;
+    }
+
+    /* Action Buttons */
     .action-buttons {
       display: flex;
       gap: 16px;
       justify-content: center;
-      flex-wrap: wrap;
+      margin-bottom: 24px;
     }
 
     .action-btn {
-      padding: 16px 32px;
-      border-radius: 16px;
+      padding: 20px 48px;
       border: none;
-      font-size: 16px;
+      border-radius: 12px;
+      font-size: 18px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-      min-width: 140px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 4px;
-    }
-
-    .action-btn::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.3));
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .action-btn:hover::before {
-      opacity: 1;
+      gap: 12px;
+      min-width: 180px;
+      justify-content: center;
     }
 
     .action-btn:hover {
       transform: translateY(-4px);
     }
 
-    .action-btn:active {
-      transform: translateY(-2px);
-    }
-
     .btn-buy {
-      background: linear-gradient(135deg, #10b981, #06b6d4);
-      color: #fff;
-      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+      background: linear-gradient(135deg, var(--accent-green), #059669);
+      color: white;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
     }
 
     .btn-buy:hover {
-      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.6);
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.6);
     }
 
     .btn-hold {
-      background: linear-gradient(135deg, #f59e0b, #eab308);
-      color: #fff;
-      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+      background: linear-gradient(135deg, var(--accent-gold), #d97706);
+      color: white;
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
     }
 
     .btn-hold:hover {
-      box-shadow: 0 8px 30px rgba(245, 158, 11, 0.6);
+      box-shadow: 0 12px 30px rgba(245, 158, 11, 0.6);
     }
 
-    .btn-sell {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #fff;
-      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    .btn-skip {
+      background: linear-gradient(135deg, var(--accent-red), #b91c1c);
+      color: white;
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
     }
 
-    .btn-sell:hover {
-      box-shadow: 0 8px 30px rgba(239, 68, 68, 0.6);
+    .btn-skip:hover {
+      box-shadow: 0 12px 30px rgba(239, 68, 68, 0.6);
     }
 
-    .result-panel {
+    /* Enhanced Result Modal */
+    .result-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    .result-modal.show {
+      display: flex;
+      animation: slideIn 0.4s ease;
+    }
+
+    .result-content {
       background: var(--bg-panel);
       border-radius: 20px;
-      border: 2px solid;
-      padding: 28px;
-      margin-top: 24px;
+      padding: 40px;
+      max-width: 700px;
+      border: 2px solid var(--border);
       text-align: center;
-      animation: slideIn 0.5s ease forwards;
-      display: none;
-    }
-
-    .result-panel.correct {
-      border-color: rgba(16, 185, 129, 0.6);
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.1));
-    }
-
-    .result-panel.wrong {
-      border-color: rgba(239, 68, 68, 0.6);
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1));
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .result-icon {
-      font-size: 64px;
-      margin-bottom: 16px;
+      font-size: 80px;
+      margin-bottom: 20px;
       animation: celebrate 0.6s ease;
     }
 
     .result-title {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      color: var(--text-main);
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 16px;
     }
 
-    .result-text {
-      font-size: 15px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      line-height: 1.7;
-      font-weight: 500;
-    }
-
-    .reward-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #f59e0b, #eab308);
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 999px;
-      font-size: 16px;
-      font-weight: 700;
-      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
-      margin: 12px 0;
-      animation: coinFlip 0.8s ease;
-    }
-
-    .next-btn {
-      margin-top: 20px;
-      padding: 12px 32px;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
-      color: #fff;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
-      transition: all 0.2s ease;
-    }
-
-    .next-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-    }
-
-    .leaderboard {
-      background: var(--bg-panel);
-      border-radius: 24px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-strong);
-      padding: 28px;
-      backdrop-filter: blur(24px);
-    }
-
-    .leaderboard-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .leaderboard-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .leaderboard-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: rgba(59, 130, 246, 0.05);
-      padding: 16px;
-      border-radius: 12px;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-      transition: all 0.2s ease;
-    }
-
-    .leaderboard-item:hover {
-      background: rgba(59, 130, 246, 0.1);
-      transform: translateX(4px);
-    }
-
-    .rank {
-      font-size: 24px;
-      font-weight: 700;
-      min-width: 40px;
-      text-align: center;
-    }
-
-    .rank.first {
-      background: linear-gradient(135deg, #f59e0b, #eab308);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .rank.second {
-      color: #94a3b8;
-    }
-
-    .rank.third {
-      color: #cd7f32;
-    }
-
-    .player-info {
-      flex: 1;
-    }
-
-    .player-name {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 4px;
-    }
-
-    .player-stats {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .player-score {
-      font-size: 20px;
-      font-weight: 700;
+    .result-title.correct {
       color: var(--accent-green);
     }
 
-    .loading {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-muted);
+    .result-title.incorrect {
+      color: var(--accent-red);
+    }
+
+    .result-explanation {
+      background: var(--bg-input);
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      text-align: left;
+    }
+
+    .explanation-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--accent-cyan);
+    }
+
+    .explanation-text {
       font-size: 14px;
-      font-weight: 600;
+      line-height: 1.6;
+      margin-bottom: 12px;
     }
 
-    /* ============================================
-       RESPONSIVE DESIGN FOR DESKTOP/LAPTOP
-       ============================================ */
+    .explanation-points {
+      list-style: none;
+      margin-top: 12px;
+    }
 
-    /* Desktop/Laptop (1024px and above) */
-    @media (min-width: 1024px) {
-      .container {
-        max-width: 1400px;
-        padding: 0 40px;
+    .explanation-points li {
+      padding: 8px 0;
+      padding-left: 24px;
+      position: relative;
+      font-size: 13px;
+    }
+
+    .explanation-points li:before {
+      content: "•";
+      position: absolute;
+      left: 8px;
+      color: var(--accent-blue);
+      font-weight: bold;
+    }
+
+    .result-rewards {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin: 24px 0;
+    }
+
+    .reward-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .reward-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent-gold);
+    }
+
+    .reward-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Learning Tip in Result */
+    .result-learning-tip {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(59, 130, 246, 0.1));
+      border: 2px solid var(--accent-purple);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .result-learning-tip h4 {
+      color: var(--accent-purple);
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-learning-tip p {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-main);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1400px) {
+      .main-layout {
+        grid-template-columns: 280px 1fr 320px;
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar, .resources-panel {
+        grid-template-columns: repeat(2, 1fr);
+        display: grid;
+      }
+
+      .chart-indicators-grid {
+        grid-template-columns: 1fr;
       }
 
       .game-stats {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 20px;
-      }
-
-      .game-layout {
-        grid-template-columns: 2fr 1fr;
-        gap: 24px;
-      }
-
-      .game-panel {
-        grid-column: 1;
-      }
-
-      .leaderboard {
-        grid-column: 2;
-        position: sticky;
-        top: 100px;
-        max-height: calc(100vh - 120px);
-        overflow-y: auto;
-        align-self: start;
-      }
-
-      .leaderboard::-webkit-scrollbar {
-        width: 6px;
-      }
-
-      .leaderboard::-webkit-scrollbar-track {
-        background: rgba(15, 23, 42, 0.3);
-        border-radius: 3px;
-      }
-
-      .leaderboard::-webkit-scrollbar-thumb {
-        background: rgba(59, 130, 246, 0.5);
-        border-radius: 3px;
-      }
-
-      .leaderboard::-webkit-scrollbar-thumb:hover {
-        background: rgba(59, 130, 246, 0.7);
-      }
-
-      .indicators-grid {
         grid-template-columns: repeat(3, 1fr);
       }
-
-      .action-buttons {
-        flex-direction: row;
-        justify-content: center;
-      }
-
-      .action-btn {
-        min-width: 180px;
-        padding: 20px 40px;
-        font-size: 17px;
-      }
-
-      header h1 {
-        font-size: 28px;
-      }
-
-      .game-title {
-        font-size: 32px;
-      }
-
-      .stock-ticker {
-        font-size: 40px;
-      }
-
-      .price-chart {
-        height: 140px;
-      }
     }
 
-    /* Tablet (768px to 1023px) */
-    @media (min-width: 768px) and (max-width: 1023px) {
+    @media (max-width: 768px) {
       .container {
-        max-width: 960px;
-        padding: 0 24px;
+        padding: 12px;
       }
 
-      .game-stats {
-        grid-template-columns: repeat(4, 1fr);
+      .header {
+        flex-direction: column;
         gap: 16px;
-      }
-
-      .indicators-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .action-buttons {
-        flex-direction: row;
-        gap: 12px;
-      }
-
-      .action-btn {
-        flex: 1;
-        min-width: 0;
-        padding: 18px 24px;
-      }
-
-      .game-title {
-        font-size: 26px;
-      }
-
-      .stock-ticker {
-        font-size: 36px;
-      }
-    }
-
-    /* Mobile (below 768px) */
-    @media (max-width: 767px) {
-      .container {
-        padding: 0 16px;
-        margin: 20px auto;
-      }
-
-      .game-stats {
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-
-      header {
-        padding: 12px 16px;
-        flex-wrap: wrap;
-      }
-
-      header h1 {
-        font-size: 18px;
-        width: 100%;
-        margin-bottom: 8px;
       }
 
       .header-controls {
@@ -803,600 +1024,1509 @@
         justify-content: space-between;
       }
 
-      .btn {
-        padding: 6px 12px;
-        font-size: 11px;
+      .sidebar, .resources-panel {
+        grid-template-columns: 1fr;
       }
 
-      .game-panel {
-        padding: 20px;
-      }
-
-      .game-title {
-        font-size: 22px;
-      }
-
-      .game-subtitle {
-        font-size: 13px;
-      }
-
-      .stock-ticker {
-        font-size: 24px;
-      }
-
-      .stock-date-range {
-        font-size: 12px;
-      }
-
-      .indicators-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-      }
-
-      .indicator {
-        padding: 10px;
-      }
-
-      .indicator-label {
-        font-size: 10px;
-      }
-
-      .indicator-value {
-        font-size: 16px;
-      }
-
-      .price-chart {
-        height: 100px;
-        gap: 3px;
-      }
-
-      .question-text {
-        font-size: 18px;
-      }
-
-      .question-hint {
-        font-size: 12px;
+      .game-stats {
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .action-buttons {
         flex-direction: column;
-        width: 100%;
       }
 
       .action-btn {
         width: 100%;
-        padding: 14px 24px;
-        font-size: 15px;
       }
 
-      .result-icon {
-        font-size: 48px;
+      .mode-selector {
+        flex-direction: column;
       }
 
-      .result-title {
-        font-size: 24px;
-      }
-
-      .result-text {
-        font-size: 14px;
-      }
-
-      .leaderboard {
-        padding: 20px;
-      }
-
-      .leaderboard-title {
-        font-size: 18px;
-      }
-
-      .leaderboard-item {
-        padding: 12px;
-        gap: 12px;
-      }
-
-      .rank {
-        font-size: 20px;
-        min-width: 32px;
-      }
-
-      .player-name {
-        font-size: 14px;
-      }
-
-      .player-stats {
-        font-size: 11px;
-      }
-
-      .player-score {
-        font-size: 18px;
-      }
-
-      .stat-value {
-        font-size: 24px;
-      }
-
-      .stat-label {
-        font-size: 11px;
-      }
-    }
-
-    /* Small mobile adjustments */
-    @media (max-width: 374px) {
-      .game-stats {
-        grid-template-columns: 1fr;
-      }
-
-      .indicators-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .action-btn {
-        padding: 12px 20px;
-        font-size: 14px;
-      }
-    }
-
-    /* Large Desktop (1600px and above) */
-    @media (min-width: 1600px) {
-      .container {
-        max-width: 1600px;
-      }
-
-      .game-stats {
-        grid-template-columns: repeat(6, 1fr);
-      }
-
-      .game-layout {
-        grid-template-columns: 2.5fr 1fr;
-      }
-
-      .price-chart {
-        height: 160px;
+      .achievements-grid {
+        grid-template-columns: repeat(3, 1fr);
       }
     }
   </style>
 </head>
-<body data-theme="dark">
-  <div class="particles">
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-  </div>
-  <div class="bg-gradient"></div>
-
-  <header>
-    <h1>🎮 Stock Trading Simulator</h1>
-    <div class="header-controls">
-      <a href="dashboard.html" class="btn btn-dashboard">📊 Back to Dashboard</a>
-      <button class="btn btn-primary" id="themeToggle">☾ Dark Mode</button>
-    </div>
-  </header>
-
+<body>
   <div class="container">
-    <!-- Game Stats -->
-    <div class="game-stats">
-      <div class="stat-card">
-        <div class="stat-label">💰 Coins Earned</div>
-        <div class="stat-value gold" id="totalCoins">0</div>
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="logo">📈 Stock Trading Academy</div>
+        <div class="level-badge" id="levelBadge">
+          <span>⭐</span>
+          <span id="levelText">Level 1 - Beginner</span>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">🎯 Accuracy</div>
-        <div class="stat-value" id="accuracy">0%</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">✅ Correct</div>
-        <div class="stat-value green" id="correctCount">0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">🏆 Current Streak</div>
-        <div class="stat-value" id="streak">0</div>
+      <div class="header-controls">
+        <button class="btn btn-secondary" id="encyclopediaBtn">📚 Encyclopedia</button>
+        <button class="btn btn-secondary" id="themeToggle">🌙 Dark Mode</button>
+        <button class="btn btn-secondary" id="dashboardBtn">📊 Dashboard</button>
+        <button class="btn btn-primary" id="logoutBtn">Logout</button>
       </div>
     </div>
 
-    <!-- Game Layout -->
-    <div class="game-layout">
-      <!-- Game Panel -->
-      <div class="game-panel">
-        <div class="game-title">📈 Predict the Market Move</div>
-        <div class="game-subtitle">Study the technical indicators and historical price data, then predict whether you should BUY, HOLD, or SELL this stock for the next 5 days.</div>
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Left Sidebar - Learning Progress -->
+      <div class="sidebar">
+        <!-- Learning Path -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="panel-icon">🎓</span>
+            Your Learning Path
+          </div>
+          <div class="learning-path" id="learningPath">
+            <!-- Populated by JS -->
+          </div>
+          
+          <!-- XP Progress -->
+          <div class="xp-container">
+            <div class="xp-header">
+              <span id="xpText">0 / 100 XP</span>
+              <span id="xpLevel">Level 1</span>
+            </div>
+            <div class="xp-bar">
+              <div class="xp-fill" id="xpFill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
 
-        <div id="gameContent" class="loading">Loading market data...</div>
+        <!-- Achievements -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="panel-icon">🏆</span>
+            Achievements
+          </div>
+          <div class="achievements-grid" id="achievementsGrid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
       </div>
 
-      <!-- Leaderboard -->
-      <div class="leaderboard">
-        <div class="leaderboard-title">
-          🏆 Top Players
+      <!-- Main Game Area -->
+      <div class="game-area">
+        <!-- Mode Selector -->
+        <div class="mode-selector">
+          <button class="mode-btn active" data-mode="tutorial">
+            <span class="mode-icon">🎯</span>
+            <span class="mode-name">Tutorial Mode</span>
+            <span class="mode-desc">Step-by-step guided learning</span>
+          </button>
+          <button class="mode-btn" data-mode="learning">
+            <span class="mode-icon">🎓</span>
+            <span class="mode-name">Learning Mode</span>
+            <span class="mode-desc">Practice with hints & tips</span>
+          </button>
+          <button class="mode-btn" data-mode="practice">
+            <span class="mode-icon">💪</span>
+            <span class="mode-name">Practice Mode</span>
+            <span class="mode-desc">Test your knowledge</span>
+          </button>
+          <button class="mode-btn" data-mode="challenge">
+            <span class="mode-icon">🔥</span>
+            <span class="mode-name">Challenge Mode</span>
+            <span class="mode-desc">Prove your expertise</span>
+          </button>
         </div>
-        <div class="leaderboard-list" id="leaderboardList">
-          <div class="loading">Loading leaderboard...</div>
+
+        <!-- Game Panel -->
+        <div class="game-panel">
+          <!-- Game Header -->
+          <div class="game-header">
+            <div class="stock-info">
+              <div class="stock-ticker" id="stockTicker">AAPL</div>
+              <div class="stock-date" id="stockDate">Loading...</div>
+            </div>
+            <button class="btn btn-secondary" id="changeTicker">Change Stock</button>
+          </div>
+
+          <!-- Game Stats -->
+          <div class="game-stats">
+            <div class="stat-card">
+              <div class="stat-value" id="currentScore">0</div>
+              <div class="stat-label">Score</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="currentStreak">0</div>
+              <div class="stat-label">Streak</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="accuracyRate">0%</div>
+              <div class="stat-label">Accuracy</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="questionsAnswered">0/10</div>
+              <div class="stat-label">Progress</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="xpEarned">0 XP</div>
+              <div class="stat-label">XP Earned</div>
+            </div>
+          </div>
+
+          <!-- Learning Hint -->
+          <div class="learning-hint" id="learningHint">
+            <div class="hint-header">
+              <span class="hint-icon">💡</span>
+              <span class="hint-title">Learning Tip</span>
+            </div>
+            <div class="hint-content" id="hintContent">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Chart and Indicators -->
+          <div class="chart-indicators-grid">
+            <!-- Chart Container -->
+            <div class="chart-container">
+              <canvas id="priceChart"></canvas>
+            </div>
+
+            <!-- Indicators Panel -->
+            <div class="indicators-panel" id="indicatorsPanel">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Question Area -->
+          <div class="question-area" style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">What should you do with this stock?</div>
+            <div id="questionHint" style="font-size: 14px; color: var(--text-muted);">Based on the technical indicators and chart pattern</div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button class="action-btn btn-buy" id="buyBtn">
+              <span>📈</span>
+              <span>BUY</span>
+            </button>
+            <button class="action-btn btn-hold" id="holdBtn">
+              <span>⏸️</span>
+              <span>HOLD</span>
+            </button>
+            <button class="action-btn btn-skip" id="skipBtn">
+              <span>❌</span>
+              <span>SKIP</span>
+            </button>
+          </div>
         </div>
+      </div>
+
+      <!-- Right Sidebar - Learning Resources -->
+      <div class="resources-panel">
+        <!-- Trading Strategies -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="panel-icon">🎯</span>
+            Trading Strategies
+          </div>
+          <div class="strategy-card" id="strategyCard">
+            <div class="strategy-title">
+              <span>📊</span>
+              <span id="strategyName">Trend Following</span>
+            </div>
+            <ul class="strategy-steps" id="strategySteps">
+              <!-- Populated by JS -->
+            </ul>
+          </div>
+        </div>
+
+        <!-- Quick Reference -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="panel-icon">📖</span>
+            Quick Reference
+          </div>
+          <div id="encyclopediaPreview" style="max-height: 400px; overflow-y: auto;">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Daily Quiz -->
+        <div class="panel">
+          <div class="panel-title">
+            <span class="panel-icon">🧠</span>
+            Quick Quiz
+          </div>
+          <div class="quiz-container" id="quizContainer">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div class="result-modal" id="resultModal">
+      <div class="result-content">
+        <div class="result-icon" id="resultIcon"></div>
+        <div class="result-title" id="resultTitle">Correct!</div>
+        
+        <div class="result-explanation">
+          <div class="explanation-title">📊 Why This Decision?</div>
+          <div class="explanation-text" id="explanationText"></div>
+          <ul class="explanation-points" id="explanationPoints"></ul>
+        </div>
+
+        <div class="result-rewards">
+          <div class="reward-item">
+            <div class="reward-value" id="rewardPoints">+50</div>
+            <div class="reward-label">Points Earned</div>
+          </div>
+          <div class="reward-item">
+            <div class="reward-value" id="rewardXP">+10</div>
+            <div class="reward-label">XP Gained</div>
+          </div>
+        </div>
+
+        <div class="result-learning-tip" id="resultLearningTip">
+          <h4>💡 Key Learning</h4>
+          <p id="learningTipText"></p>
+        </div>
+
+        <button class="btn btn-primary" id="nextQuestionBtn" style="margin-top: 20px; width: 100%;">Continue Learning →</button>
       </div>
     </div>
   </div>
 
   <script>
-    const API_BASE = "https://stock-signal-api.onrender.com";
-
-    // Firebase Configuration - REPLACE WITH YOUR CONFIG
+    // Firebase Configuration
     const firebaseConfig = {
-      apiKey: "AIzaSyAFVns8fWpaD-uwaRDskVM4QPXTPfIiahc",
-      authDomain: "stock-signal-api-d0291.firebaseapp.com",
-      projectId: "stock-signal-api-d0291",
-      storageBucket: "stock-signal-api-d0291.firebasestorage.app",
-      messagingSenderId: "498426661242",
-      appId: "1:498426661242:web:033b8af321d874e99aaec3",
-      measurementId: "G-M23P4FNF61"
+      apiKey: "AIzaSyBToe64SLKJnqAGzQdR3mubyhDXXqZRHdg",
+      authDomain: "stockai-f22ba.firebaseapp.com",
+      projectId: "stockai-f22ba",
+      storageBucket: "stockai-f22ba.firebasestorage.app",
+      messagingSenderId: "633976769226",
+      appId: "1:633976769226:web:60ff05ec3c6d0a13ab0bf5",
+      measurementId: "G-YRZPQWDL5G"
     };
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    let currentUser = null;
-    let gameState = {
-      coins: 0,
-      correct: 0,
-      total: 0,
-      streak: 0,
-      bestStreak: 0
+    // Enhanced Learning Lessons Configuration
+    const LESSONS = [
+      {
+        id: 1,
+        title: "Stock Market Basics",
+        desc: "Understanding what stocks are and how markets work",
+        focus: ["basics"],
+        unlocked: true,
+        modules: [
+          "What is a stock?",
+          "How stock prices move",
+          "Reading price charts",
+          "Volume basics"
+        ]
+      },
+      {
+        id: 2,
+        title: "Understanding Trends",
+        desc: "Learn to identify uptrends, downtrends, and sideways markets",
+        focus: ["ma10", "ma20", "maratio"],
+        unlocked: false,
+        modules: [
+          "What is a trend?",
+          "Moving averages explained",
+          "Support and resistance",
+          "Trend confirmation"
+        ]
+      },
+      {
+        id: 3,
+        title: "Momentum Indicators",
+        desc: "Master RSI and MACD for entry/exit timing",
+        focus: ["rsi", "macd", "macdhist"],
+        unlocked: false,
+        modules: [
+          "RSI explained",
+          "Overbought/oversold zones",
+          "MACD signals",
+          "Divergence patterns"
+        ]
+      },
+      {
+        id: 4,
+        title: "Volatility & Risk",
+        desc: "Understand price volatility using Bollinger Bands and ATR",
+        focus: ["bbwidth", "atr14", "vol20d"],
+        unlocked: false,
+        modules: [
+          "What is volatility?",
+          "Bollinger Bands",
+          "ATR for stop-loss",
+          "Risk management"
+        ]
+      },
+      {
+        id: 5,
+        title: "Volume Analysis",
+        desc: "Confirm trends with volume patterns",
+        focus: ["volumez"],
+        unlocked: false,
+        modules: [
+          "Volume basics",
+          "Volume confirmation",
+          "Accumulation/distribution",
+          "Volume breakouts"
+        ]
+      },
+      {
+        id: 6,
+        title: "Pattern Recognition",
+        desc: "Identify common chart patterns",
+        focus: ["all"],
+        unlocked: false,
+        modules: [
+          "Head and shoulders",
+          "Double tops/bottoms",
+          "Triangles",
+          "Flags and pennants"
+        ]
+      },
+      {
+        id: 7,
+        title: "Risk Management",
+        desc: "Position sizing and portfolio management",
+        focus: ["all"],
+        unlocked: false,
+        modules: [
+          "Position sizing",
+          "Stop-loss strategies",
+          "Portfolio diversification",
+          "Risk/reward ratio"
+        ]
+      },
+      {
+        id: 8,
+        title: "Master Trader",
+        desc: "Combine all indicators for expert decisions",
+        focus: ["all"],
+        unlocked: false,
+        modules: [
+          "Multi-timeframe analysis",
+          "Confluence trading",
+          "Market psychology",
+          "Building a trading plan"
+        ]
+      }
+    ];
+
+    // Trading Strategies Database
+    const STRATEGIES = {
+      "Trend Following": {
+        steps: [
+          "Identify the trend using MA10 and MA20",
+          "Wait for price to pull back to the moving average",
+          "Check RSI is not overbought (< 70)",
+          "Enter when price bounces off MA with strong volume",
+          "Set stop-loss below recent swing low",
+          "Take profit at 2:1 risk/reward ratio"
+        ],
+        whenToUse: "Use in strong trending markets with clear direction"
+      },
+      "Mean Reversion": {
+        steps: [
+          "Wait for RSI to reach extreme levels (> 70 or < 30)",
+          "Check if price is far from moving averages",
+          "Look for reversal candlestick patterns",
+          "Enter when RSI starts moving back to 50",
+          "Set tight stop-loss beyond recent high/low",
+          "Exit when price returns to moving average"
+        ],
+        whenToUse: "Best in range-bound markets or after extreme moves"
+      },
+      "Breakout Trading": {
+        steps: [
+          "Identify consolidation pattern (triangle, rectangle)",
+          "Watch for volume to dry up during consolidation",
+          "Wait for price to break above/below pattern",
+          "Confirm breakout with increased volume",
+          "Enter on pullback to breakout level",
+          "Set stop-loss inside the pattern"
+        ],
+        whenToUse: "Use when stock is consolidating after a strong move"
+      },
+      "MACD Crossover": {
+        steps: [
+          "Wait for MACD line to cross signal line",
+          "Confirm with price trend in same direction",
+          "Check histogram is expanding",
+          "Enter when crossover confirmed",
+          "Set stop-loss below recent swing",
+          "Exit when MACD shows divergence"
+        ],
+        whenToUse: "Effective for catching medium-term trend changes"
+      }
     };
 
-    let currentChallenge = null;
-    const STOCK_POOL = ["AAPL", "MSFT", "GOOG", "TSLA", "AMZN", "NVDA", "META", "JPM", "BAC", "DIS"];
+    // Enhanced Encyclopedia with Real Trading Knowledge
+    const ENCYCLOPEDIA = {
+      "Moving Average (MA)": {
+        definition: "The average price of a stock over a specific time period. It smooths out price action to show the overall trend direction.",
+        example: "If MA10 > MA20, the short-term trend is stronger than the long-term trend, suggesting bullish momentum.",
+        usage: "Use MA crossovers to identify trend changes. Price above MA = uptrend, below = downtrend.",
+        icon: "📊"
+      },
+      "RSI (Relative Strength Index)": {
+        definition: "A momentum indicator measuring the speed and magnitude of price changes on a scale of 0-100.",
+        example: "RSI > 70 means overbought (potential sell), RSI < 30 means oversold (potential buy).",
+        usage: "Use RSI to identify overbought/oversold conditions and potential reversals. Best combined with trend analysis.",
+        icon: "⚡"
+      },
+      "MACD": {
+        definition: "Moving Average Convergence Divergence - shows the relationship between two moving averages of price.",
+        example: "When MACD line crosses above signal line, it's a bullish signal. When it crosses below, it's bearish.",
+        usage: "Use MACD for trend confirmation and identifying momentum shifts. Histogram shows strength of momentum.",
+        icon: "📈"
+      },
+      "Bollinger Bands": {
+        definition: "Volatility bands placed above and below a moving average. Width expands during high volatility.",
+        example: "When bands are narrow, expect a breakout. When price touches upper band in uptrend, it shows strength.",
+        usage: "Use to gauge volatility and potential reversals. Price outside bands often reverts to mean.",
+        icon: "🎯"
+      },
+      "ATR (Average True Range)": {
+        definition: "Measures market volatility by calculating the average range between high and low prices.",
+        example: "High ATR = more volatile (bigger price swings), Low ATR = less volatile (smaller moves).",
+        usage: "Use ATR to set appropriate stop-losses. Multiply ATR by 2-3x for stop-loss distance.",
+        icon: "📏"
+      },
+      "Volume": {
+        definition: "The number of shares traded during a period. Confirms the strength of price movements.",
+        example: "Price up + High volume = strong bullish move. Price up + Low volume = weak move, may reverse.",
+        usage: "Always confirm price movements with volume. Breakouts need high volume to be valid.",
+        icon: "📊"
+      },
+      "Support & Resistance": {
+        definition: "Price levels where buying (support) or selling (resistance) pressure is strong enough to prevent further movement.",
+        example: "If a stock repeatedly bounces off $100, that's a support level. If it fails to break $120, that's resistance.",
+        usage: "Buy near support, sell near resistance. Breakouts above resistance often lead to strong rallies.",
+        icon: "🧱"
+      },
+      "Trend": {
+        definition: "The general direction in which a stock's price is moving - up, down, or sideways.",
+        example: "Uptrend = higher highs and higher lows. Downtrend = lower highs and lower lows.",
+        usage: "Trade in the direction of the trend. 'The trend is your friend until it ends.'",
+        icon: "📈"
+      },
+      "Risk/Reward Ratio": {
+        definition: "The potential profit of a trade compared to its potential loss.",
+        example: "If you risk $100 to potentially make $300, your risk/reward ratio is 1:3.",
+        usage: "Only take trades with at least 1:2 risk/reward. This lets you be profitable even if you're right only 40% of the time.",
+        icon: "⚖️"
+      },
+      "Stop-Loss": {
+        definition: "A predetermined price level where you'll exit a losing trade to limit losses.",
+        example: "If you buy at $100 with 5% stop-loss, you'll automatically sell if price drops to $95.",
+        usage: "Always use stop-losses. Professional traders preserve capital first, make profits second.",
+        icon: "🛑"
+      }
+    };
 
-    // Auth check
-    auth.onAuthStateChanged((user) => {
-      if (!user) {
-        window.location.href = 'index.html';
+    // Quiz Questions Database
+    const QUIZ_QUESTIONS = [
+      {
+        question: "What does RSI above 70 typically indicate?",
+        options: [
+          "The stock is oversold and may bounce",
+          "The stock is overbought and may correct",
+          "The stock is in a strong uptrend",
+          "Nothing significant"
+        ],
+        correct: 1,
+        explanation: "RSI above 70 indicates overbought conditions, meaning the stock may have risen too quickly and could correct downward."
+      },
+      {
+        question: "When should you use a wider stop-loss?",
+        options: [
+          "When ATR is high (high volatility)",
+          "When ATR is low (low volatility)",
+          "Always use the same stop-loss",
+          "Never use stop-losses"
+        ],
+        correct: 0,
+        explanation: "Higher ATR means bigger price swings, so you need a wider stop-loss to avoid getting stopped out by normal volatility."
+      },
+      {
+        question: "What's the best time to buy in trend following?",
+        options: [
+          "When price breaks to new highs",
+          "When price pulls back to moving average",
+          "When RSI is overbought",
+          "When volume is lowest"
+        ],
+        correct: 1,
+        explanation: "In trend following, you want to buy pullbacks to the moving average in an uptrend - this offers better risk/reward."
+      },
+      {
+        question: "What confirms a breakout is valid?",
+        options: [
+          "Price moves 10% above resistance",
+          "High volume accompanies the breakout",
+          "RSI reaches 50",
+          "MACD crosses zero"
+        ],
+        correct: 1,
+        explanation: "High volume confirms a breakout is genuine. Low volume breakouts often fail and reverse quickly."
+      },
+      {
+        question: "What's a good minimum risk/reward ratio?",
+        options: [
+          "1:1 (risk $1 to make $1)",
+          "1:2 (risk $1 to make $2)",
+          "2:1 (risk $2 to make $1)",
+          "It doesn't matter"
+        ],
+        correct: 1,
+        explanation: "A minimum 1:2 risk/reward ratio means you only need to win 40% of trades to be profitable, giving you an edge."
+      }
+    ];
+
+    // Achievements Configuration
+    const ACHIEVEMENTS = [
+      { id: "firstwin", name: "First Win", icon: "🎯", condition: (stats) => stats.correct >= 1 },
+      { id: "streak5", name: "5 Streak", icon: "🔥", condition: (stats) => stats.maxStreak >= 5 },
+      { id: "accuracy80", name: "80% Accuracy", icon: "🎖️", condition: (stats) => stats.accuracy >= 80 },
+      { id: "questions50", name: "50 Questions", icon: "📚", condition: (stats) => stats.totalAnswered >= 50 },
+      { id: "perfect10", name: "Perfect 10", icon: "💯", condition: (stats) => stats.perfectRounds >= 1 },
+      { id: "expert", name: "Expert", icon: "👑", condition: (stats) => stats.accuracy >= 90 && stats.totalAnswered >= 100 },
+      { id: "scholar", name: "Scholar", icon: "🎓", condition: (stats) => stats.lessonsCompleted >= 5 },
+      { id: "strategist", name: "Strategist", icon: "🧠", condition: (stats) => stats.strategiesLearned >= 3 },
+      { id: "quiz_master", name: "Quiz Master", icon: "🏆", condition: (stats) => stats.quizzesCompleted >= 10 },
+      { id: "level_5", name: "Level 5", icon: "⭐", condition: (stats) => stats.level >= 5 }
+    ];
+
+    // Indicator Information
+    const INDICATOR_INFO = {
+      ma10: {
+        name: "MA 10",
+        desc: "10-day Moving Average - Short-term trend",
+        tooltip: "When price is above MA10, it indicates short-term bullish momentum. Below indicates bearish. This is one of the fastest indicators."
+      },
+      ma20: {
+        name: "MA 20",
+        desc: "20-day Moving Average - Medium-term trend",
+        tooltip: "MA20 represents the medium-term trend. Price above MA20 suggests sustained bullish sentiment. Many traders use this as a trend filter."
+      },
+      rsi: {
+        name: "RSI",
+        desc: "Relative Strength Index - Momentum oscillator",
+        tooltip: "RSI > 70 = Overbought (potential sell), RSI < 30 = Oversold (potential buy). RSI = 50 is neutral. Use with trend confirmation."
+      },
+      macd: {
+        name: "MACD",
+        desc: "Moving Average Convergence Divergence",
+        tooltip: "MACD above signal line = Bullish. Below signal line = Bearish. Histogram shows momentum strength. Crossovers are trading signals."
+      },
+      bbwidth: {
+        name: "BB Width",
+        desc: "Bollinger Bands Width - Volatility measure",
+        tooltip: "High BB width = High volatility/risk. Low BB width = Low volatility, potential breakout. Squeeze often precedes big moves."
+      },
+      atr14: {
+        name: "ATR",
+        desc: "Average True Range - Price volatility",
+        tooltip: "Higher ATR means bigger price swings. Use for position sizing and stop-loss placement. Multiply ATR by 2-3 for stop distance."
+      },
+      volumez: {
+        name: "Volume",
+        desc: "Volume Z-Score - Trading activity",
+        tooltip: "Positive = Higher than average volume (confirms trend). Negative = Lower volume (weak trend). Volume validates price action."
+      },
+      vol20d: {
+        name: "Volatility",
+        desc: "20-day Price Volatility",
+        tooltip: "Measures how much the price fluctuates. Higher volatility = Higher risk AND opportunity. Adjust position size accordingly."
+      }
+    };
+
+    // Game State
+    let gameState = {
+      mode: "tutorial",
+      currentLesson: 1,
+      currentQuestion: 0,
+      totalQuestions: 10,
+      score: 0,
+      streak: 0,
+      maxStreak: 0,
+      correct: 0,
+      incorrect: 0,
+      ticker: "AAPL",
+      historyData: null,
+      currentIndex: 0,
+      xp: 0,
+      level: 1,
+      userStats: {
+        totalAnswered: 0,
+        accuracy: 0,
+        perfectRounds: 0,
+        unlockedAchievements: [],
+        lessonsCompleted: 0,
+        strategiesLearned: 0,
+        quizzesCompleted: 0,
+        level: 1,
+        xp: 0
+      }
+    };
+
+    let priceChart = null;
+    let currentStrategy = "Trend Following";
+    let currentQuiz = 0;
+
+    // Initialize
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        initializeGame(user);
       } else {
-        currentUser = user;
-        loadGameState();
-        loadLeaderboard();
-        startNewChallenge();
+        window.location.href = "index.html";
       }
     });
 
-    // Load game state from Firestore
-    async function loadGameState() {
-      try {
-        const doc = await db.collection('users').doc(currentUser.uid).get();
-        if (doc.exists && doc.data().gameState) {
-          gameState = doc.data().gameState;
-          updateStatsDisplay();
-        }
-      } catch (error) {
-        console.error('Error loading game state:', error);
-      }
-    }
-
-    // Save game state to Firestore
-    async function saveGameState() {
-      try {
-        await db.collection('users').doc(currentUser.uid).update({
-          gameState: gameState,
-          displayName: currentUser.displayName || currentUser.email.split('@')[0],
-          lastPlayed: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      } catch (error) {
-        console.error('Error saving game state:', error);
-      }
-    }
-
-    // Update stats display
-    function updateStatsDisplay() {
-      document.getElementById('totalCoins').textContent = gameState.coins;
-      document.getElementById('correctCount').textContent = gameState.correct;
-      document.getElementById('streak').textContent = gameState.streak;
-      
-      const accuracy = gameState.total > 0 
-        ? ((gameState.correct / gameState.total) * 100).toFixed(1) 
-        : 0;
-      document.getElementById('accuracy').textContent = accuracy + '%';
-    }
-
-    // Start new challenge
-    async function startNewChallenge() {
-      const gameContent = document.getElementById('gameContent');
-      gameContent.innerHTML = '<div class="loading">Loading market data...</div>';
-
-      // Pick random stock
-      const ticker = STOCK_POOL[Math.floor(Math.random() * STOCK_POOL.length)];
-
-      try {
-        // Fetch historical data
-        const resp = await fetch(`${API_BASE}/history?ticker=${ticker}`);
-        const data = await resp.json();
-
-        if (!data.history || data.history.length === 0) {
-          gameContent.innerHTML = '<div class="loading">Failed to load data. Trying another stock...</div>';
-          setTimeout(startNewChallenge, 2000);
-          return;
-        }
-
-        // Pick a random historical point (not the last 5 days, since we need future data)
-        const validPoints = data.history.filter(h => h.future_price !== null);
-        if (validPoints.length === 0) {
-          gameContent.innerHTML = '<div class="loading">Not enough historical data. Trying another stock...</div>';
-          setTimeout(startNewChallenge, 2000);
-          return;
-        }
-
-        const randomIndex = Math.floor(Math.random() * validPoints.length);
-        const point = validPoints[randomIndex];
-        
-        // Get surrounding context (10 days before)
-        const contextStart = Math.max(0, data.history.indexOf(point) - 10);
-        const contextData = data.history.slice(contextStart, data.history.indexOf(point) + 1);
-
-        // Calculate technical indicators from context
-        const prices = contextData.map(d => d.price);
-        const lastPrice = point.price;
-        const futurePrice = point.future_price;
-        
-        // Simple indicators
-        const change1d = prices.length >= 2 ? ((prices[prices.length-1] - prices[prices.length-2]) / prices[prices.length-2] * 100) : 0;
-        const ma5 = prices.slice(-5).reduce((a,b) => a+b, 0) / Math.min(5, prices.length);
-        const ma10 = prices.reduce((a,b) => a+b, 0) / prices.length;
-        
-        // Determine actual outcome
-        const actualReturn = ((futurePrice - lastPrice) / lastPrice) * 100;
-        let correctAnswer;
-        if (actualReturn > 2) correctAnswer = 'BUY';
-        else if (actualReturn < -2) correctAnswer = 'SELL';
-        else correctAnswer = 'HOLD';
-
-        currentChallenge = {
-          ticker: ticker,
-          date: point.date,
-          price: lastPrice,
-          futurePrice: futurePrice,
-          actualReturn: actualReturn,
-          correctAnswer: correctAnswer,
-          contextData: contextData,
-          indicators: {
-            change1d: change1d,
-            ma5: ma5,
-            ma10: ma10,
-            trend: ma5 > ma10 ? 'Uptrend' : 'Downtrend'
-          }
+    async function initializeGame(user) {
+      // Load user stats
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      if (userDoc.exists) {
+        const data = userDoc.data();
+        gameState.userStats = {
+          totalAnswered: data.gamesPlayed || 0,
+          accuracy: data.winRate || 0,
+          perfectRounds: data.perfectGames || 0,
+          unlockedAchievements: data.achievements || [],
+          lessonsCompleted: data.lessonsCompleted || 0,
+          strategiesLearned: data.strategiesLearned || 0,
+          quizzesCompleted: data.quizzesCompleted || 0,
+          level: data.level || 1,
+          xp: data.xp || 0
         };
-
-        renderChallenge();
-      } catch (error) {
-        console.error('Error loading challenge:', error);
-        gameContent.innerHTML = '<div class="loading">Error loading data. Please try again.</div>';
+        gameState.level = gameState.userStats.level;
+        gameState.xp = gameState.userStats.xp;
       }
+
+      renderLearningPath();
+      renderAchievements();
+      renderEncyclopedia();
+      renderStrategy();
+      renderQuiz();
+      updateLevelDisplay();
+      await loadNewStock();
+      setupEventListeners();
     }
 
-    // Render challenge
-    function renderChallenge() {
-      const gameContent = document.getElementById('gameContent');
-      const c = currentChallenge;
+    function renderLearningPath() {
+      const container = document.getElementById("learningPath");
+      container.innerHTML = LESSONS.map(lesson => {
+        const isActive = lesson.id === gameState.currentLesson;
+        const isCompleted = lesson.id < gameState.currentLesson;
+        const isLocked = !lesson.unlocked && !isCompleted && !isActive;
 
-      // Create price chart bars
-      const maxPrice = Math.max(...c.contextData.map(d => d.price));
-      const minPrice = Math.min(...c.contextData.map(d => d.price));
-      const priceRange = maxPrice - minPrice || 1;
+        let status = "🔒";
+        if (isCompleted) status = "✅";
+        else if (isActive) status = "▶️";
 
-      const chartBars = c.contextData.map(d => {
-        const height = ((d.price - minPrice) / priceRange) * 100;
+        let classes = "lesson-item";
+        if (isActive) classes += " active";
+        if (isCompleted) classes += " completed";
+        if (isLocked) classes += " locked";
+
         return `
-          <div class="price-bar" style="height: ${height}%">
-            <div class="price-bar-tooltip">${d.date}<br>$${d.price.toFixed(2)}</div>
+          <div class="${classes}" data-lesson="${lesson.id}">
+            <div class="lesson-header">
+              <span class="lesson-number">Lesson ${lesson.id}</span>
+              <span class="lesson-status">${status}</span>
+            </div>
+            <div class="lesson-title">${lesson.title}</div>
+            <div class="lesson-desc">${lesson.desc}</div>
+            ${isActive ? `
+              <div class="lesson-progress">
+                <div class="lesson-progress-bar" style="width: ${(gameState.currentQuestion / gameState.totalQuestions) * 100}%"></div>
+              </div>
+            ` : ''}
           </div>
         `;
       }).join('');
 
-      gameContent.innerHTML = `
-        <div class="stock-info">
-          <div class="stock-ticker">${c.ticker}</div>
-          <div class="stock-date-range">Historical data ending on: ${c.date}</div>
-          
-          <div class="price-chart">
-            ${chartBars}
-          </div>
-
-          <div class="indicators-grid">
-            <div class="indicator">
-              <div class="indicator-label">Current Price</div>
-              <div class="indicator-value">$${c.price.toFixed(2)}</div>
-            </div>
-            <div class="indicator">
-              <div class="indicator-label">1-Day Change</div>
-              <div class="indicator-value" style="color: ${c.indicators.change1d >= 0 ? '#10b981' : '#ef4444'}">
-                ${c.indicators.change1d >= 0 ? '+' : ''}${c.indicators.change1d.toFixed(2)}%
-              </div>
-            </div>
-            <div class="indicator">
-              <div class="indicator-label">5-Day MA</div>
-              <div class="indicator-value">$${c.indicators.ma5.toFixed(2)}</div>
-            </div>
-            <div class="indicator">
-              <div class="indicator-label">10-Day MA</div>
-              <div class="indicator-value">$${c.indicators.ma10.toFixed(2)}</div>
-            </div>
-            <div class="indicator">
-              <div class="indicator-label">Trend Signal</div>
-              <div class="indicator-value" style="color: ${c.indicators.trend === 'Uptrend' ? '#10b981' : '#ef4444'}">
-                ${c.indicators.trend}
-              </div>
-            </div>
-            <div class="indicator">
-              <div class="indicator-label">MA Position</div>
-              <div class="indicator-value" style="font-size: 14px;">
-                ${c.price > c.indicators.ma5 ? 'Above 5-MA' : 'Below 5-MA'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="question">
-          <div class="question-text">What should you do with ${c.ticker}?</div>
-          <div class="question-hint">Predict the best action for the next 5 days based on the data above</div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="action-btn btn-buy" onclick="makeDecision('BUY')">
-            <span>📈 BUY</span>
-            <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Expect price increase</small>
-          </button>
-          <button class="action-btn btn-hold" onclick="makeDecision('HOLD')">
-            <span>⏸️ HOLD</span>
-            <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Price will stay flat</small>
-          </button>
-          <button class="action-btn btn-sell" onclick="makeDecision('SELL')">
-            <span>📉 SELL</span>
-            <small style="font-size: 11px; font-weight: 500; opacity: 0.8;">Expect price decrease</small>
-          </button>
-        </div>
-
-        <div id="resultPanel" class="result-panel"></div>
-      `;
-    }
-
-    // Make decision
-    function makeDecision(choice) {
-      const c = currentChallenge;
-      const isCorrect = choice === c.correctAnswer;
-
-      // Update game state
-      gameState.total++;
-      if (isCorrect) {
-        gameState.correct++;
-        gameState.streak++;
-        const reward = 10 + (gameState.streak * 2); // Bonus for streaks
-        gameState.coins += reward;
-        
-        if (gameState.streak > gameState.bestStreak) {
-          gameState.bestStreak = gameState.streak;
-        }
-      } else {
-        gameState.streak = 0;
-      }
-
-      updateStatsDisplay();
-      saveGameState();
-      loadLeaderboard(); // Refresh leaderboard after each game
-      showResult(isCorrect, choice);
-    }
-
-    // Show result
-    function showResult(isCorrect, userChoice) {
-      const c = currentChallenge;
-      const resultPanel = document.getElementById('resultPanel');
-      resultPanel.style.display = 'block';
-      resultPanel.className = 'result-panel ' + (isCorrect ? 'correct' : 'wrong');
-
-      const reward = isCorrect ? (10 + ((gameState.streak - 1) * 2)) : 0;
-
-      let explanation = '';
-      if (c.actualReturn > 2) {
-        explanation = `The stock price increased by ${c.actualReturn.toFixed(2)}% from $${c.price.toFixed(2)} to $${c.futurePrice.toFixed(2)} over the next 5 days. `;
-      } else if (c.actualReturn < -2) {
-        explanation = `The stock price decreased by ${Math.abs(c.actualReturn).toFixed(2)}% from $${c.price.toFixed(2)} to $${c.futurePrice.toFixed(2)} over the next 5 days. `;
-      } else {
-        explanation = `The stock price stayed relatively flat, moving only ${c.actualReturn.toFixed(2)}% from $${c.price.toFixed(2)} to $${c.futurePrice.toFixed(2)}. `;
-      }
-
-      if (isCorrect) {
-        explanation += `Your ${userChoice} decision was spot on! `;
-        if (gameState.streak > 1) {
-          explanation += `You're on a ${gameState.streak}-game winning streak! 🔥`;
-        }
-      } else {
-        explanation += `The correct action was ${c.correctAnswer}. `;
-        if (c.indicators.trend === 'Uptrend' && c.correctAnswer === 'BUY') {
-          explanation += `The uptrend signal was a strong hint.`;
-        } else if (c.indicators.trend === 'Downtrend' && c.correctAnswer === 'SELL') {
-          explanation += `The downtrend signal indicated weakness.`;
-        }
-      }
-
-      resultPanel.innerHTML = `
-        <div class="result-icon">${isCorrect ? '🎉' : '💡'}</div>
-        <div class="result-title">${isCorrect ? 'Correct!' : 'Not Quite!'}</div>
-        <div class="result-text">${explanation}</div>
-        ${isCorrect ? `<div class="reward-badge">💰 +${reward} Coins Earned!</div>` : ''}
-        <button class="next-btn" onclick="startNewChallenge()">
-          ${isCorrect ? '🚀 Next Challenge' : '🔄 Try Another Stock'}
-        </button>
-      `;
-
-      // Disable action buttons
-      document.querySelectorAll('.action-btn').forEach(btn => {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-        btn.style.cursor = 'not-allowed';
+      // Add click handlers
+      container.querySelectorAll('.lesson-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const lessonId = parseInt(item.dataset.lesson);
+          if (!item.classList.contains('locked')) {
+            changeLesson(lessonId);
+          }
+        });
       });
     }
 
-    // Load leaderboard
-    async function loadLeaderboard() {
-      const leaderboardList = document.getElementById('leaderboardList');
+    function renderAchievements() {
+      const container = document.getElementById("achievementsGrid");
+      container.innerHTML = ACHIEVEMENTS.map(achievement => {
+        const unlocked = gameState.userStats.unlockedAchievements.includes(achievement.id) || 
+                        achievement.condition(gameState.userStats);
+        
+        return `
+          <div class="achievement-badge ${unlocked ? 'unlocked' : ''}" title="${achievement.name}">
+            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-name">${achievement.name}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderEncyclopedia() {
+      const container = document.getElementById("encyclopediaPreview");
+      const entries = Object.entries(ENCYCLOPEDIA).slice(0, 5);
       
-      try {
-        const snapshot = await db.collection('users')
-          .orderBy('gameState.coins', 'desc')
-          .limit(10)
-          .get();
+      container.innerHTML = entries.map(([term, info]) => `
+        <div class="encyclopedia-item">
+          <div class="encyclopedia-term">${info.icon} ${term}</div>
+          <div class="encyclopedia-definition">${info.definition}</div>
+          <div class="encyclopedia-example"><strong>Example:</strong> ${info.example}</div>
+        </div>
+      `).join('');
+    }
 
-        if (snapshot.empty) {
-          leaderboardList.innerHTML = '<div class="loading">No players yet. Be the first!</div>';
-          return;
-        }
+    function renderStrategy() {
+      const strategy = STRATEGIES[currentStrategy];
+      document.getElementById("strategyName").textContent = currentStrategy;
+      document.getElementById("strategySteps").innerHTML = strategy.steps.map(step => 
+        `<li>${step}</li>`
+      ).join('');
+    }
 
-        let html = '';
-        let rank = 1;
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const gameState = data.gameState || {};
-          const name = data.displayName || data.email?.split('@')[0] || 'Anonymous';
-          const coins = gameState.coins || 0;
-          const accuracy = gameState.total > 0 ? ((gameState.correct / gameState.total) * 100).toFixed(1) : 0;
+    function renderQuiz() {
+      const quiz = QUIZ_QUESTIONS[currentQuiz % QUIZ_QUESTIONS.length];
+      const container = document.getElementById("quizContainer");
+      
+      container.innerHTML = `
+        <div class="quiz-question">${quiz.question}</div>
+        <div class="quiz-options">
+          ${quiz.options.map((option, index) => `
+            <div class="quiz-option" data-index="${index}">${option}</div>
+          `).join('')}
+        </div>
+      `;
+
+      container.querySelectorAll('.quiz-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const selected = parseInt(option.dataset.index);
+          const isCorrect = selected === quiz.correct;
           
-          let rankClass = '';
-          let rankEmoji = `#${rank}`;
-          if (rank === 1) { rankClass = 'first'; rankEmoji = '🥇'; }
-          else if (rank === 2) { rankClass = 'second'; rankEmoji = '🥈'; }
-          else if (rank === 3) { rankClass = 'third'; rankEmoji = '🥉'; }
-
-          html += `
-            <div class="leaderboard-item" style="${doc.id === currentUser.uid ? 'border: 2px solid rgba(59, 130, 246, 0.5);' : ''}">
-              <div class="rank ${rankClass}">${rankEmoji}</div>
-              <div class="player-info">
-                <div class="player-name">${name}${doc.id === currentUser.uid ? ' (You)' : ''}</div>
-                <div class="player-stats">${gameState.total || 0} games • ${accuracy}% accuracy</div>
-              </div>
-              <div class="player-score">${coins} 💰</div>
-            </div>
-          `;
-          rank++;
+          option.classList.add(isCorrect ? 'correct' : 'incorrect');
+          
+          setTimeout(() => {
+            if (isCorrect) {
+              gameState.userStats.quizzesCompleted++;
+              addXP(5);
+              currentQuiz++;
+              renderQuiz();
+            } else {
+              alert(`Not quite! ${quiz.explanation}`);
+              option.classList.remove('incorrect');
+            }
+          }, 1000);
         });
+      });
+    }
 
-        leaderboardList.innerHTML = html;
-      } catch (error) {
-        console.error('Error loading leaderboard:', error);
-        leaderboardList.innerHTML = '<div class="loading">Failed to load leaderboard</div>';
+    function updateLevelDisplay() {
+      const xpForNextLevel = gameState.level * 100;
+      const xpProgress = gameState.xp % 100;
+      
+      document.getElementById("levelBadge").innerHTML = `
+        <span>⭐</span>
+        <span>Level ${gameState.level} - ${getLevelTitle()}</span>
+      `;
+      
+      document.getElementById("xpText").textContent = `${xpProgress} / 100 XP`;
+      document.getElementById("xpLevel").textContent = `Level ${gameState.level}`;
+      document.getElementById("xpFill").style.width = `${xpProgress}%`;
+    }
+
+    function getLevelTitle() {
+      if (gameState.level >= 10) return "Master Trader";
+      if (gameState.level >= 8) return "Expert";
+      if (gameState.level >= 6) return "Advanced";
+      if (gameState.level >= 4) return "Intermediate";
+      if (gameState.level >= 2) return "Novice";
+      return "Beginner";
+    }
+
+    function addXP(amount) {
+      gameState.xp += amount;
+      gameState.userStats.xp = gameState.xp;
+      
+      // Check for level up
+      const newLevel = Math.floor(gameState.xp / 100) + 1;
+      if (newLevel > gameState.level) {
+        gameState.level = newLevel;
+        gameState.userStats.level = newLevel;
+        showLevelUpModal(newLevel);
+      }
+      
+      updateLevelDisplay();
+      document.getElementById("xpEarned").textContent = `+${amount} XP`;
+    }
+
+    function showLevelUpModal(level) {
+      alert(`🎉 LEVEL UP! You've reached Level ${level} - ${getLevelTitle()}! 🎉`);
+      // Unlock next lesson
+      if (level <= LESSONS.length) {
+        LESSONS[level - 1].unlocked = true;
+        renderLearningPath();
       }
     }
 
-    // Theme toggle
-    const themeToggle = document.getElementById('themeToggle');
-    const currentTheme = localStorage.getItem('theme') || 'dark';
-    document.body.setAttribute('data-theme', currentTheme);
-    themeToggle.textContent = currentTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
+    async function loadNewStock() {
+      try {
+        const tickers = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META'];
+        gameState.ticker = tickers[Math.floor(Math.random() * tickers.length)];
+        
+        document.getElementById("stockTicker").textContent = gameState.ticker;
+        
+        const response = await fetch(`http://127.0.0.1:8000/history?ticker=${gameState.ticker}`);
+        const data = await response.json();
+        
+        gameState.historyData = data;
+        gameState.currentIndex = Math.floor(Math.random() * (data.history.length - 10));
+        
+        renderQuestion();
+      } catch (error) {
+        console.error("Error loading stock:", error);
+      }
+    }
 
-    themeToggle.addEventListener('click', () => {
-      const theme = document.body.getAttribute('data-theme');
-      const newTheme = theme === 'dark' ? 'light' : 'dark';
-      document.body.setAttribute('data-theme', newTheme);
-      localStorage.setItem('theme', newTheme);
-      themeToggle.textContent = newTheme === 'dark' ? '☾ Dark Mode' : '☀ Light Mode';
-    });
+    function renderQuestion() {
+      const currentData = gameState.historyData.history[gameState.currentIndex];
+      
+      document.getElementById("stockDate").textContent = currentData.date;
+      document.getElementById("questionsAnswered").textContent = 
+        `${gameState.currentQuestion + 1}/${gameState.totalQuestions}`;
+      
+      // Update stats
+      document.getElementById("currentScore").textContent = gameState.score;
+      document.getElementById("currentStreak").textContent = gameState.streak;
+      
+      const accuracy = gameState.currentQuestion > 0 
+        ? Math.round((gameState.correct / gameState.currentQuestion) * 100) 
+        : 0;
+      document.getElementById("accuracyRate").textContent = accuracy + "%";
+      
+      // Render chart and indicators
+      renderChart();
+      renderIndicators();
+      
+      // Show learning hint
+      if (gameState.mode === "tutorial" || gameState.mode === "learning") {
+        showLearningHint();
+      } else {
+        document.getElementById("learningHint").classList.remove("show");
+      }
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById("priceChart").getContext("2d");
+      
+      // Get data for chart (last 30 days up to current point)
+      const startIdx = Math.max(0, gameState.currentIndex - 30);
+      const endIdx = gameState.currentIndex + 1;
+      const dates = gameState.historyData.dates.slice(startIdx, endIdx);
+      const prices = gameState.historyData.close.slice(startIdx, endIdx);
+      const ma10 = gameState.historyData.ma10.slice(startIdx, endIdx);
+      const ma20 = gameState.historyData.ma20.slice(startIdx, endIdx);
+      
+      if (priceChart) {
+        priceChart.destroy();
+      }
+      
+      priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: dates,
+          datasets: [
+            {
+              label: 'Price',
+              data: prices,
+              borderColor: '#06b6d4',
+              backgroundColor: 'rgba(6, 182, 212, 0.1)',
+              borderWidth: 3,
+              tension: 0.4,
+              fill: true
+            },
+            {
+              label: 'MA10',
+              data: ma10,
+              borderColor: '#10b981',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.4,
+              fill: false
+            },
+            {
+              label: 'MA20',
+              data: ma20,
+              borderColor: '#f59e0b',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              tension: 0.4,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#f1f5f9' }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#94a3b8', maxRotation: 45 },
+              grid: { color: 'rgba(148, 163, 184, 0.1)' }
+            },
+            y: {
+              ticks: { color: '#94a3b8' },
+              grid: { color: 'rgba(148, 163, 184, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderIndicators() {
+      const currentLesson = LESSONS.find(l => l.id === gameState.currentLesson);
+      const focusIndicators = currentLesson.focus[0] === "all" || currentLesson.focus[0] === "basics"
+        ? Object.keys(INDICATOR_INFO)
+        : currentLesson.focus;
+      
+      const container = document.getElementById("indicatorsPanel");
+      const idx = gameState.currentIndex;
+      
+      // Calculate indicator values
+      const indicators = {
+        ma10: gameState.historyData.ma10[idx],
+        ma20: gameState.historyData.ma20[idx],
+        rsi: calculateRSI(idx),
+        macd: calculateMACD(idx),
+        bbwidth: calculateBBWidth(idx),
+        atr14: calculateATR(idx),
+        volumez: calculateVolumeZ(idx),
+        vol20d: calculateVolatility(idx)
+      };
+      
+      container.innerHTML = focusIndicators.map(key => {
+        const info = INDICATOR_INFO[key];
+        if (!info) return '';
+        
+        const value = indicators[key];
+        const signal = getSignal(key, value);
+        
+        return `
+          <div class="indicator-card">
+            <div class="indicator-header">
+              <span class="indicator-label">
+                ${info.name}
+                <span class="info-icon">ℹ️</span>
+              </span>
+              <span class="indicator-signal signal-${signal}">${signal.toUpperCase()}</span>
+            </div>
+            <div class="indicator-value">${formatIndicatorValue(key, value)}</div>
+            <div class="tooltip">${info.tooltip}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Helper functions for calculations
+    function calculateRSI(idx) {
+      const prices = gameState.historyData.close;
+      const period = 14;
+      if (idx < period) return 50;
+      
+      let gains = 0, losses = 0;
+      for (let i = idx - period + 1; i <= idx; i++) {
+        const change = prices[i] - prices[i - 1];
+        if (change > 0) gains += change;
+        else losses += Math.abs(change);
+      }
+      
+      const avgGain = gains / period;
+      const avgLoss = losses / period;
+      const rs = avgGain / (avgLoss + 1);
+      
+      return 100 - (100 / (1 + rs));
+    }
+
+    function calculateMACD(idx) {
+      const prices = gameState.historyData.close;
+      if (idx < 26) return 0;
+      
+      const ema12 = calculateEMA(prices.slice(0, idx + 1), 12);
+      const ema26 = calculateEMA(prices.slice(0, idx + 1), 26);
+      
+      return ema12 - ema26;
+    }
+
+    function calculateEMA(data, period) {
+      const k = 2 / (period + 1);
+      let ema = data[0];
+      for (let i = 1; i < data.length; i++) {
+        ema = (data[i] * k) + (ema * (1 - k));
+      }
+      return ema;
+    }
+
+    function calculateBBWidth(idx) {
+      const prices = gameState.historyData.close;
+      const period = 20;
+      if (idx < period) return 0;
+      
+      const slice = prices.slice(idx - period + 1, idx + 1);
+      const mean = slice.reduce((a, b) => a + b) / period;
+      const std = Math.sqrt(slice.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / period);
+      
+      return (4 * std / mean) * 100;
+    }
+
+    function calculateATR(idx) {
+      const highs = gameState.historyData.high;
+      const lows = gameState.historyData.low;
+      const period = 14;
+      if (idx < period) return 0;
+      
+      let sum = 0;
+      for (let i = idx - period + 1; i <= idx; i++) {
+        sum += (highs[i] - lows[i]);
+      }
+      
+      return sum / period;
+    }
+
+    function calculateVolumeZ(idx) {
+      return Math.random() - 0.5 * 2; // Mock
+    }
+
+    function calculateVolatility(idx) {
+      const prices = gameState.historyData.close;
+      const period = 20;
+      if (idx < period) return 0;
+      
+      const returns = [];
+      for (let i = idx - period + 1; i <= idx; i++) {
+        returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+      }
+      
+      const mean = returns.reduce((a, b) => a + b) / returns.length;
+      const variance = returns.reduce((sq, r) => sq + Math.pow(r - mean, 2), 0) / returns.length;
+      
+      return Math.sqrt(variance) * 100;
+    }
+
+    function getSignal(indicator, value) {
+      switch(indicator) {
+        case 'rsi':
+          if (value > 70) return 'bearish';
+          if (value < 30) return 'bullish';
+          return 'neutral';
+        case 'macd':
+          return value > 0 ? 'bullish' : 'bearish';
+        case 'bbwidth':
+          return value > 5 ? 'bearish' : 'neutral';
+        case 'volumez':
+          return value > 1 ? 'bullish' : value < -1 ? 'bearish' : 'neutral';
+        default:
+          return 'neutral';
+      }
+    }
+
+    function formatIndicatorValue(key, value) {
+      if (key === 'bbwidth' || key === 'vol20d') {
+        return value.toFixed(2) + '%';
+      }
+      return value.toFixed(2);
+    }
+
+    function showLearningHint() {
+      const currentLesson = LESSONS.find(l => l.id === gameState.currentLesson);
+      
+      const hints = {
+        1: {
+          title: "Stock Market Basics",
+          content: "Stocks represent ownership in a company. When you buy a stock, you own a small piece of that business.",
+          bullets: [
+            "Price moves based on supply and demand",
+            "Charts help visualize price movement over time",
+            "Green candles = price went up, Red = price went down",
+            "Volume shows how many shares were traded"
+          ]
+        },
+        2: {
+          title: "Understanding Trends",
+          content: "Look at the relationship between price and moving averages:",
+          bullets: [
+            "Price above MA10 and MA20 = Strong uptrend → Consider BUY",
+            "Price below both MAs = Downtrend → Consider SKIP",
+            "Price between MAs = Consolidation → Consider HOLD",
+            "MA10 crossing above MA20 = Bullish signal"
+          ]
+        },
+        3: {
+          title: "Momentum Indicators",
+          content: "Use RSI and MACD to time your entries:",
+          bullets: [
+            "RSI < 30 = Oversold, potential bounce → BUY opportunity",
+            "RSI > 70 = Overbought, potential correction → SKIP",
+            "MACD crossing above signal = Bullish momentum → BUY",
+            "Divergence (price up, RSI down) = Warning sign"
+          ]
+        },
+        4: {
+          title: "Volatility & Risk",
+          content: "Assess risk before making decisions:",
+          bullets: [
+            "High BB width = High volatility → Reduce position size or HOLD",
+            "High ATR = Big price swings → Set wider stop-loss",
+            "Low volatility = Safer entry point → Good time to BUY",
+            "Volatility squeeze often precedes big moves"
+          ]
+        },
+        5: {
+          title: "Volume Confirms Trends",
+          content: "Volume validates price movements:",
+          bullets: [
+            "Price up + High volume = Strong bullish signal → BUY",
+            "Price up + Low volume = Weak trend → Be cautious",
+            "High volume on reversal = Trend change confirmed",
+            "Volume should increase in direction of trend"
+          ]
+        }
+      };
+      
+      const hint = hints[gameState.currentLesson] || hints[2];
+      const hintEl = document.getElementById("learningHint");
+      const contentEl = document.getElementById("hintContent");
+      
+      contentEl.innerHTML = `
+        <p><strong>${hint.content}</strong></p>
+        <ul class="hint-bullets">
+          ${hint.bullets.map(b => `<li>${b}</li>`).join('')}
+        </ul>
+      `;
+      
+      hintEl.classList.add("show");
+    }
+
+    function handleAnswer(userAction) {
+      const currentData = gameState.historyData.history[gameState.currentIndex];
+      const modelAction = currentData.action;
+      const futurePrice = currentData.futureprice;
+      const currentPrice = currentData.price;
+      
+      // Determine if answer is correct
+      let isCorrect = false;
+      if (futurePrice && currentPrice) {
+        const priceChange = ((futurePrice - currentPrice) / currentPrice) * 100;
+        
+        if (futurePrice > currentPrice) {
+          const priceChange = ((futurePrice - currentPrice) / currentPrice) * 100;
+          if (userAction === "BUY") isCorrect = priceChange > 0.5;
+          else if (userAction === "SKIP") isCorrect = priceChange < 0;
+          else isCorrect = Math.abs(priceChange) < 0.5;
+        }
+      } else {
+        isCorrect = (userAction === modelAction) || 
+                   (userAction === "HOLD" && Math.abs(currentData.probability - 0.5) < 0.1);
+      }
+      
+      // Update stats
+      gameState.currentQuestion++;
+      gameState.userStats.totalAnswered++;
+      
+      if (isCorrect) {
+        gameState.correct++;
+        gameState.score += gameState.mode === "challenge" ? 100 : gameState.mode === "practice" ? 50 : 30;
+        gameState.streak++;
+        gameState.maxStreak = Math.max(gameState.maxStreak, gameState.streak);
+        
+        // Add XP
+        const xpGain = gameState.mode === "challenge" ? 20 : gameState.mode === "practice" ? 15 : 10;
+        addXP(xpGain);
+      } else {
+        gameState.incorrect++;
+        gameState.streak = 0;
+        addXP(5); // Small XP for trying
+      }
+      
+      gameState.userStats.accuracy = (gameState.correct / gameState.userStats.totalAnswered) * 100;
+      
+      // Show result modal
+      showResultModal(isCorrect, userAction, modelAction, futurePrice, currentPrice);
+      
+      // Check for achievements
+      checkAchievements();
+    }
+
+    function showResultModal(isCorrect, userAction, modelAction, futurePrice, currentPrice) {
+      const modal = document.getElementById("resultModal");
+      const icon = document.getElementById("resultIcon");
+      const title = document.getElementById("resultTitle");
+      const explanationText = document.getElementById("explanationText");
+      const explanationPoints = document.getElementById("explanationPoints");
+      const rewardPoints = document.getElementById("rewardPoints");
+      const rewardXP = document.getElementById("rewardXP");
+      const learningTipText = document.getElementById("learningTipText");
+      
+      if (isCorrect) {
+        icon.textContent = "🎉";
+        title.textContent = "Excellent Decision!";
+        title.className = "result-title correct";
+        
+        const points = gameState.mode === "challenge" ? 100 : gameState.mode === "practice" ? 50 : 30;
+        const xp = gameState.mode === "challenge" ? 20 : gameState.mode === "practice" ? 15 : 10;
+        
+        rewardPoints.textContent = `+${points}`;
+        rewardXP.textContent = `+${xp} XP`;
+      } else {
+        icon.textContent = "💭";
+        title.textContent = "Learning Opportunity";
+        title.className = "result-title incorrect";
+        
+        rewardPoints.textContent = "+5";
+        rewardXP.textContent = "+5 XP";
+      }
+      
+      // Generate explanation
+      const priceChange = futurePrice && currentPrice ? ((futurePrice - currentPrice) / currentPrice) * 100 : 0;
+      let explanation = "";
+      let points = [];
+      let learningTip = "";
+      
+      if (isCorrect) {
+        explanation = `Your ${userAction} decision was spot-on! `;
+        
+        if (priceChange > 0) {
+          explanation += `The stock gained ${priceChange.toFixed(2)}% in the next 5 days.`;
+          points = [
+            "The upward trend was correctly identified",
+            "Technical indicators supported the bullish move",
+            "Your risk assessment was accurate",
+            "Volume confirmed the price action"
+          ];
+          learningTip = "Great job identifying the bullish signals! Continue to look for trend confirmation with multiple indicators before making trading decisions.";
+        } else if (priceChange < 0) {
+          explanation += `You avoided a ${Math.abs(priceChange).toFixed(2)}% loss by skipping.`;
+          points = [
+            "You identified weakness in the indicators",
+            "Avoiding losses is as important as capturing gains",
+            "Good risk management protects capital",
+            "Preserving capital allows you to trade another day"
+          ];
+          learningTip = "Excellent risk management! Knowing when NOT to trade is just as important as knowing when to trade. This discipline will serve you well.";
+        } else {
+          explanation += "The market remained relatively flat, and holding was the right move.";
+          points = [
+            "You recognized the lack of strong directional signals",
+            "Patience is a valuable trading skill",
+            "Not every situation requires action",
+            "Waiting for clear setups improves win rate"
+          ];
+          learningTip = "Patience is a virtue in trading. By waiting for high-probability setups instead of forcing trades, you increase your overall success rate.";
+        }
+      } else {
+        explanation = `The ${modelAction} action would have been better. `;
+        
+        if (priceChange > 0) {
+          explanation += `The stock gained ${priceChange.toFixed(2)}% - a missed opportunity.`;
+          points = [
+            "Review the trend indicators - they showed bullish signals",
+            "RSI and MACD can help identify momentum shifts",
+            "Don't let fear keep you from good opportunities",
+            "Practice recognizing bullish confirmations"
+          ];
+          learningTip = "Don't worry - identifying good opportunities takes practice! Focus on learning to recognize when multiple indicators align. Review the 'Trend Following' strategy in the sidebar.";
+        } else {
+          explanation += `The stock dropped ${Math.abs(priceChange).toFixed(2)}% - risk wasn't managed properly.`;
+          points = [
+            "Warning signs were present in the indicators",
+            "High volatility or overbought conditions suggested caution",
+            "Protecting capital is the first priority",
+            "Use stop-losses to limit downside risk"
+          ];
+          learningTip = "Risk management is crucial! Before entering any trade, always identify your exit point. A good rule: never risk more than 2% of your capital on a single trade.";
+        }
+      }
+      
+      explanationText.textContent = explanation;
+      explanationPoints.innerHTML = points.map(p => `<li>${p}</li>`).join('');
+      learningTipText.textContent = learningTip;
+      
+      modal.classList.add("show");
+    }
+
+    function closeResultModal() {
+      document.getElementById("resultModal").classList.remove("show");
+      
+      // Check if round is complete
+      if (gameState.currentQuestion >= gameState.totalQuestions) {
+        completeLesson();
+      } else {
+        // Move to next question
+        gameState.currentIndex++;
+        if (gameState.currentIndex >= gameState.historyData.history.length - 1) {
+          loadNewStock();
+        } else {
+          renderQuestion();
+        }
+      }
+    }
+
+    function completeLesson() {
+      // Check if perfect round
+      if (gameState.correct === gameState.totalQuestions) {
+        gameState.userStats.perfectRounds++;
+      }
+      
+      // Unlock next lesson
+      if (gameState.currentLesson < LESSONS.length) {
+        LESSONS[gameState.currentLesson].unlocked = true;
+        gameState.userStats.lessonsCompleted++;
+      }
+      
+      // Save progress
+      saveProgress();
+      
+      // Reset for next lesson
+      const score = Math.round((gameState.correct / gameState.totalQuestions) * 100);
+      alert(`Lesson ${gameState.currentLesson} Complete! Score: ${score}%\n\nReady for the next lesson?`);
+      
+      gameState.currentLesson++;
+      gameState.currentQuestion = 0;
+      gameState.correct = 0;
+      gameState.incorrect = 0;
+      gameState.score = 0;
+      gameState.streak = 0;
+      
+      renderLearningPath();
+      loadNewStock();
+    }
+
+    function checkAchievements() {
+      ACHIEVEMENTS.forEach(achievement => {
+        if (!gameState.userStats.unlockedAchievements.includes(achievement.id)) {
+          if (achievement.condition(gameState.userStats)) {
+            gameState.userStats.unlockedAchievements.push(achievement.id);
+            showAchievementUnlocked(achievement);
+          }
+        }
+      });
+      
+      renderAchievements();
+    }
+
+    function showAchievementUnlocked(achievement) {
+      setTimeout(() => {
+        alert(`🏆 Achievement Unlocked!\n\n${achievement.icon} ${achievement.name}\n\n+50 XP Bonus!`);
+        addXP(50);
+      }, 500);
+    }
+
+    async function saveProgress() {
+      const user = auth.currentUser;
+      if (!user) return;
+      
+      try {
+        await db.collection("users").doc(user.uid).set({
+          gamesPlayed: gameState.userStats.totalAnswered,
+          winRate: gameState.userStats.accuracy,
+          perfectGames: gameState.userStats.perfectRounds,
+          achievements: gameState.userStats.unlockedAchievements,
+          currentLesson: gameState.currentLesson,
+          lessonsCompleted: gameState.userStats.lessonsCompleted,
+          strategiesLearned: gameState.userStats.strategiesLearned,
+          quizzesCompleted: gameState.userStats.quizzesCompleted,
+          level: gameState.level,
+          xp: gameState.xp,
+          lastPlayed: new Date()
+        }, { merge: true });
+      } catch (error) {
+        console.error("Error saving progress:", error);
+      }
+    }
+
+    function changeLesson(lessonId) {
+      gameState.currentLesson = lessonId;
+      gameState.currentQuestion = 0;
+      gameState.correct = 0;
+      gameState.incorrect = 0;
+      gameState.score = 0;
+      gameState.streak = 0;
+      
+      renderLearningPath();
+      loadNewStock();
+    }
+
+    function setupEventListeners() {
+      // Mode selection
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          gameState.mode = btn.dataset.mode;
+          renderQuestion();
+        });
+      });
+      
+      // Action buttons
+      document.getElementById("buyBtn").addEventListener("click", () => handleAnswer("BUY"));
+      document.getElementById("holdBtn").addEventListener("click", () => handleAnswer("HOLD"));
+      document.getElementById("skipBtn").addEventListener("click", () => handleAnswer("SKIP"));
+      
+      // Next question
+      document.getElementById("nextQuestionBtn").addEventListener("click", closeResultModal);
+      
+      // Change ticker
+      document.getElementById("changeTicker").addEventListener("click", loadNewStock);
+      
+      // Theme toggle
+      document.getElementById("themeToggle").addEventListener("click", () => {
+        const html = document.documentElement;
+        const currentTheme = html.getAttribute("data-theme");
+        const newTheme = currentTheme === "light" ? "dark" : "light";
+        html.setAttribute("data-theme", newTheme);
+        
+        const btn = document.getElementById("themeToggle");
+        btn.textContent = newTheme === "light" ? "🌙 Dark Mode" : "☀️ Light Mode";
+      });
+      
+      // Encyclopedia button
+      document.getElementById("encyclopediaBtn").addEventListener("click", () => {
+        let content = "📚 Stock Trading Encyclopedia\n\n";
+        Object.entries(ENCYCLOPEDIA).forEach(([term, info]) => {
+          content += `${info.icon} ${term}\n${info.definition}\n\n`;
+        });
+        alert(content);
+      });
+      
+      // Dashboard navigation
+      const dashboardBtn = document.getElementById("dashboardBtn");
+      if (dashboardBtn) {
+        dashboardBtn.addEventListener("click", () => {
+          window.location.href = "dashboard.html";
+        });
+      }
+      
+      // Logout
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        auth.signOut().then(() => {
+          window.location.href = "index.html";
+        });
+      });
+    }
   </script>
 </body>
 </html>
