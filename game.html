@@ -962,25 +962,26 @@
                 <div class="mode-selector">
                     <button class="mode-btn active" data-mode="tutorial">
                         <span class="mode-icon">🎓</span>
-                        <span class="mode-name">Tutorial Mode</span>
-                        <span class="mode-desc">Step-by-step guided learning</span>
+                        <span class="mode-name">Tutorial</span>
+                        <span class="mode-desc">5 questions • Always hints • 0.5x rewards</span>
                     </button>
                     <button class="mode-btn" data-mode="learning">
                         <span class="mode-icon">📖</span>
-                        <span class="mode-name">Learning Mode</span>
-                        <span class="mode-desc">Practice with hints & tips</span>
+                        <span class="mode-name">Learning</span>
+                        <span class="mode-desc">10 questions • Optional hints • 0.75x rewards</span>
                     </button>
                     <button class="mode-btn" data-mode="practice">
                         <span class="mode-icon">💪</span>
-                        <span class="mode-name">Practice Mode</span>
-                        <span class="mode-desc">Test your knowledge</span>
+                        <span class="mode-name">Practice</span>
+                        <span class="mode-desc">15 questions • 30s timer • 1x rewards</span>
                     </button>
                     <button class="mode-btn" data-mode="challenge">
-                        <span class="mode-icon">🏆</span>
-                        <span class="mode-name">Challenge Mode</span>
-                        <span class="mode-desc">Prove your expertise</span>
+                    <span class="mode-icon">🏆</span>
+                    <span class="mode-name">Challenge</span>
+                    <span class="mode-desc">20 questions • 20s timer • 2x rewards • 3 lives</span>
                     </button>
                 </div>
+
 
                 <!-- Game Panel -->
                 <div class="game-panel">
@@ -1358,6 +1359,63 @@ const INDICATORINFO = {
 };
 
 // ============================================================================
+// GAME MODE SETTINGS (NEW)
+// ============================================================================
+function getModeSettings() {
+    const settings = {
+        tutorial: {
+            name: 'Tutorial Mode',
+            questionsPerLesson: 5,
+            showHints: true,
+            alwaysShowHint: true,
+            coinMultiplier: 0.5,
+            xpMultiplier: 0.5,
+            hasTimer: false,
+            allowRetry: true,
+            description: 'Learn with step-by-step guidance'
+        },
+        learning: {
+            name: 'Learning Mode',
+            questionsPerLesson: 10,
+            showHints: true,
+            alwaysShowHint: false,
+            coinMultiplier: 0.75,
+            xpMultiplier: 0.75,
+            hasTimer: false,
+            allowRetry: true,
+            description: 'Practice with optional hints'
+        },
+        practice: {
+            name: 'Practice Mode',
+            questionsPerLesson: 15,
+            showHints: false,
+            alwaysShowHint: false,
+            coinMultiplier: 1.0,
+            xpMultiplier: 1.0,
+            hasTimer: true,
+            timeLimit: 30,
+            allowRetry: false,
+            description: 'Timed challenges for full rewards'
+        },
+        challenge: {
+            name: 'Challenge Mode',
+            questionsPerLesson: 20,
+            showHints: false,
+            alwaysShowHint: false,
+            coinMultiplier: 2.0,
+            xpMultiplier: 2.0,
+            hasTimer: true,
+            timeLimit: 20,
+            allowRetry: false,
+            maxMistakes: 3,
+            description: 'Hardcore mode - 3 lives only!'
+        }
+    };
+    
+    return settings[gameState.mode] || settings.learning;
+}
+
+// ============================================================================
 // GAME STATE
 // ============================================================================
 let gameState = {
@@ -1379,6 +1437,8 @@ let gameState = {
     level: 1,
     activePowerups: {},
     ownedPowerups: {},
+    challengeMistakes: 0,  
+    questionStartTime: 0,
     userStats: {
         totalAnswered: 0,
         accuracy: 0,
@@ -1878,9 +1938,80 @@ async function loadNewStock() {
     }
 }
 
+// ============================================================================
+// TIMER SYSTEM (NEW)
+// ============================================================================
+let questionTimer = null;
+let timeRemaining = 0;
+
+function startQuestionTimer(seconds) {
+    clearInterval(questionTimer);
+    timeRemaining = seconds;
+    
+    // Create or update timer display
+    let timerDisplay = document.getElementById('questionTimer');
+    if (!timerDisplay) {
+        const questionArea = document.querySelector('.question-area');
+        if (!questionArea) return;
+        
+        timerDisplay = document.createElement('div');
+        timerDisplay.id = 'questionTimer';
+        timerDisplay.style.cssText = `
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--accent-gold);
+            margin-top: 16px;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        `;
+        questionArea.appendChild(timerDisplay);
+    }
+    
+    updateTimerDisplay(timerDisplay);
+    
+    questionTimer = setInterval(() => {
+        timeRemaining--;
+        updateTimerDisplay(timerDisplay);
+        
+        if (timeRemaining <= 0) {
+            clearInterval(questionTimer);
+            // Auto-submit as timeout (counts as wrong answer)
+            alert('⏰ Time\'s up! Moving to next question...');
+            makeDecision('TIMEOUT');
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay(display) {
+    display.textContent = `⏱️ ${timeRemaining}s`;
+    
+    if (timeRemaining <= 5) {
+        display.style.color = 'var(--accent-red)';
+        display.style.animation = 'pulseGlow 0.5s infinite';
+    } else if (timeRemaining <= 10) {
+        display.style.color = 'var(--accent-gold)';
+    } else {
+        display.style.color = 'var(--accent-cyan)';
+    }
+}
+
+function clearQuestionTimer() {
+    clearInterval(questionTimer);
+    const timerDisplay = document.getElementById('questionTimer');
+    if (timerDisplay) {
+        timerDisplay.remove();
+    }
+}
+        
 function renderQuestion() {
     const currentData = gameState.historyData.history[gameState.currentIndex];
     document.getElementById('stockDate').textContent = currentData.date;
+    
+    // ✅ Get mode-specific settings
+    const modeSettings = getModeSettings();
+    
+    // Update total questions based on mode
+    gameState.totalQuestions = modeSettings.questionsPerLesson;
     
     updateStatsDisplay();
     renderChart();
@@ -1893,13 +2024,74 @@ function renderQuestion() {
         btn.style.cursor = 'pointer';
     });
     
-    // Show learning hint if in tutorial/learning mode
-    if (gameState.mode === 'tutorial' || gameState.mode === 'learning') {
+    // ✅ Show hints based on mode
+    if (modeSettings.alwaysShowHint) {
+        // Tutorial mode: always show full hints
         showLearningHint();
+    } else if (gameState.mode === 'learning' && modeSettings.showHints) {
+        // Learning mode: show hint button
+        const hintDiv = document.getElementById('learningHint');
+        hintDiv.classList.add('show');
+        document.getElementById('hintContent').innerHTML = `
+            <button onclick="showDetailedHint()" 
+                    style="padding: 12px 24px; background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue)); 
+                           color: white; border: none; border-radius: 8px; cursor: pointer; 
+                           font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);">
+                💡 Show Hint (Free in Learning Mode)
+            </button>
+        `;
     } else {
+        // Practice/Challenge: no hints
         document.getElementById('learningHint').classList.remove('show');
     }
+    
+    // ✅ Add timer for Practice/Challenge modes
+    if (modeSettings.hasTimer) {
+        startQuestionTimer(modeSettings.timeLimit);
+    }
+    
+    // ✅ Show challenge lives
+    if (gameState.mode === 'challenge') {
+        showChallengeLives(modeSettings.maxMistakes);
+    }
 }
+
+// ============================================================================
+// HELPER FUNCTIONS - ADD THIS ENTIRE SECTION HERE ✅
+// ============================================================================
+
+// Show detailed hint (for learning mode button)
+function showDetailedHint() {
+    showLearningHint();
+}
+
+// Show challenge mode lives
+function showChallengeLives(maxLives) {
+    const mistakes = gameState.challengeMistakes || 0;
+    const livesRemaining = maxLives - mistakes;
+    
+    let livesDiv = document.getElementById('challengeLives');
+    if (!livesDiv) {
+        const gameHeader = document.querySelector('.game-header');
+        livesDiv = document.createElement('div');
+        livesDiv.id = 'challengeLives';
+        livesDiv.style.cssText = `
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-red);
+        `;
+        gameHeader.appendChild(livesDiv);
+    }
+    
+    const hearts = '❤️'.repeat(livesRemaining) + '🖤'.repeat(mistakes);
+    livesDiv.innerHTML = `<span>Lives: ${hearts}</span>`;
+    
+    if (livesRemaining <= 1) {
+        livesDiv.style.animation = 'pulseGlow 0.5s infinite';
+    }
+}
+
+// ← END OF PART 6
 
 function showLearningHint() {
     const currentLesson = LESSONS.find(l => l.id === gameState.currentLesson);
@@ -2008,14 +2200,40 @@ function determineCorrectAnswer() {
     
     const change = ((futurePrice - currentPrice) / currentPrice) * 100;
     
-    if (change > 2) return 'BUY';
-    if (change < -2) return 'SKIP';
+    // ✅ FIXED: Stricter thresholds prevent HOLD spam
+    if (change > 4) return 'BUY';       // Strong upward movement
+    if (change < -4) return 'SKIP';     // Strong downward movement
+    
+    // HOLD only for small movements (-2% to +2%)
+    if (change >= -2 && change <= 2) {
+        return 'HOLD';
+    }
+    
+    // For ambiguous cases (2-4% range), use indicators
+    const idx = gameState.currentIndex;
+    const recentPrices = gameState.historyData.history
+        .slice(Math.max(0, idx - 10), idx + 1)
+        .map(d => d.price);
+    
+    if (recentPrices.length >= 10) {
+        const ma10 = recentPrices.reduce((a,b) => a+b) / recentPrices.length;
+        
+        // Trend-based decision for ambiguous cases
+        if (change > 0 && currentPrice > ma10 * 1.01) return 'BUY';
+        if (change < 0 && currentPrice < ma10 * 0.99) return 'SKIP';
+    }
+    
     return 'HOLD';
 }
 
 function makeDecision(choice) {
+    clearQuestionTimer();  // ✅ Stop timer
+    
     const correctAnswer = determineCorrectAnswer();
-    const isCorrect = choice === correctAnswer;
+    const isCorrect = choice === correctAnswer && choice !== 'TIMEOUT';
+    
+    // ✅ Get mode settings
+    const modeSettings = getModeSettings();
     
     gameState.total++;
     gameState.currentQuestion++;
@@ -2027,8 +2245,9 @@ function makeDecision(choice) {
         gameState.correct++;
         gameState.streak++;
         
-        coinReward = 10 + (gameState.streak - 1) * 2;
-        xpReward = 15;
+        // ✅ Apply mode multipliers
+        coinReward = Math.round((10 + (gameState.streak - 1) * 2) * modeSettings.coinMultiplier);
+        xpReward = Math.round(15 * modeSettings.xpMultiplier);
         
         // Check for Double Rewards powerup
         if (gameState.activePowerups['double']) {
@@ -2041,8 +2260,18 @@ function makeDecision(choice) {
         addXP(xpReward);
         
     } else {
+        // ✅ Challenge mode: check max mistakes
+        if (gameState.mode === 'challenge') {
+            gameState.challengeMistakes = (gameState.challengeMistakes || 0) + 1;
+            if (gameState.challengeMistakes >= modeSettings.maxMistakes) {
+                alert(`💀 GAME OVER! You made ${modeSettings.maxMistakes} mistakes in Challenge Mode.\n\nFinal Score:\n✅ Correct: ${gameState.correct}\n❌ Wrong: ${gameState.incorrect}\n🪙 Coins Earned: ${gameState.coins}`);
+                gameState.currentQuestion = gameState.totalQuestions; // End game
+            }
+        }
+        
         // Check for Freeze Streak powerup
         if (gameState.activePowerups['freeze']) {
+            alert('❄️ FREEZE STREAK activated! Your streak is protected!');
             delete gameState.activePowerups['freeze'];
         } else {
             gameState.streak = 0;
@@ -2054,16 +2283,19 @@ function makeDecision(choice) {
         gameState.maxStreak = gameState.streak;
     }
     
+    // Update stats
     gameState.userStats.coins = gameState.coins;
     gameState.userStats.totalAnswered++;
     gameState.userStats.accuracy = Math.round((gameState.correct / gameState.total) * 100);
     
+    // Update displays
     updateStatsDisplay();
     renderPowerupShop();
     showActivePowerups();
     saveGameState();
     loadLeaderboard();
     
+    // Show result
     showResult(isCorrect, choice, correctAnswer, coinReward, xpReward);
 }
 
@@ -2206,15 +2438,42 @@ document.getElementById('encyclopediaBtn').addEventListener('click', () => {
     });
     
     // Mode selector
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            gameState.mode = btn.getAttribute('data-mode');
-        });
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        const newMode = btn.getAttribute('data-mode');
+        gameState.mode = newMode;
+        
+        // ✅ Reset game for new mode
+        gameState.currentQuestion = 0;
+        gameState.correct = 0;
+        gameState.incorrect = 0;
+        gameState.total = 0;
+        gameState.streak = 0;
+        gameState.challengeMistakes = 0;
+        
+        // Get mode settings and update UI
+        const modeSettings = getModeSettings();
+        gameState.totalQuestions = modeSettings.questionsPerLesson;
+        
+        // Show mode info
+        alert(`🎮 ${modeSettings.name}\n\n${modeSettings.description}\n\n` +
+              `📊 Questions: ${modeSettings.questionsPerLesson}\n` +
+              `🪙 Coin Multiplier: ${modeSettings.coinMultiplier}x\n` +
+              `⭐ XP Multiplier: ${modeSettings.xpMultiplier}x\n` +
+              (modeSettings.hasTimer ? `⏱️ Time Limit: ${modeSettings.timeLimit}s per question\n` : '') +
+              (modeSettings.maxMistakes ? `❤️ Lives: ${modeSettings.maxMistakes}\n` : '') +
+              (modeSettings.alwaysShowHint ? '💡 Hints: Always shown\n' : 
+               modeSettings.showHints ? '💡 Hints: Available on request\n' : '💡 Hints: Disabled\n'));
+        
+        // Reload question
+        loadNewStock();
     });
-}
+});
 
+}
 
 // Encyclopedia Modal Function
 function showEncyclopedia() {
@@ -2308,4 +2567,5 @@ function showEncyclopedia() {
 </script>
 </body>
 </html>
+
 
