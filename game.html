@@ -2185,6 +2185,11 @@ function setupEventListeners() {
             console.error('Logout error:', error);
         }
     });
+
+    // Encyclopedia button - NEW CODE ✅
+document.getElementById('encyclopediaBtn').addEventListener('click', () => {
+    showEncyclopedia();
+});
     
     // Theme toggle
     const themeToggle = document.getElementById('themeToggle');
@@ -2209,6 +2214,98 @@ function setupEventListeners() {
         });
     });
 }
+
+
+// Encyclopedia Modal Function
+function showEncyclopedia() {
+    const modal = document.createElement('div');
+    modal.className = 'result-modal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="result-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">📚 Trading Encyclopedia</h2>
+                <button onclick="this.closest('.result-modal').remove()" 
+                        style="background: var(--accent-red); color: white; border: none; 
+                               padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700;">
+                    ✕ Close
+                </button>
+            </div>
+            
+            <div style="display: grid; gap: 20px;">
+                ${Object.entries(INDICATORINFO).map(([key, info]) => `
+                    <div style="background: var(--bg-input); padding: 20px; border-radius: 12px; 
+                                border: 1px solid var(--border);">
+                        <h3 style="color: var(--accent-cyan); margin-bottom: 8px;">
+                            ${info.name}
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                            ${info.desc}
+                        </p>
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 12px; 
+                                    border-radius: 8px; border-left: 3px solid var(--accent-blue);">
+                            <strong style="color: var(--accent-blue);">How to use:</strong><br>
+                            <span style="font-size: 13px; line-height: 1.6;">${info.tooltip}</span>
+                        </div>
+                    </div>
+                `).join('')}
+                
+                <!-- Trading Strategies -->
+                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.1)); 
+                            padding: 20px; border-radius: 12px; border: 2px solid var(--accent-green);">
+                    <h3 style="color: var(--accent-green); margin-bottom: 12px;">
+                        🎯 Trading Strategies
+                    </h3>
+                    <ul style="font-size: 13px; line-height: 2; margin: 0; padding-left: 20px;">
+                        <li><strong>Trend Following:</strong> Buy when MA10 > MA20 and price is above both</li>
+                        <li><strong>Momentum Trading:</strong> Look for RSI between 40-60 for entry signals</li>
+                        <li><strong>Volatility Breakout:</strong> When BB Width narrows, expect big move soon</li>
+                        <li><strong>Volume Confirmation:</strong> High volume + price increase = strong trend</li>
+                        <li><strong>Risk Management:</strong> Never risk more than 2% per trade</li>
+                    </ul>
+                </div>
+                
+                <!-- Common Patterns -->
+                <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(239, 68, 68, 0.1)); 
+                            padding: 20px; border-radius: 12px; border: 2px solid var(--accent-gold);">
+                    <h3 style="color: var(--accent-gold); margin-bottom: 12px;">
+                        📊 Common Chart Patterns
+                    </h3>
+                    <div style="display: grid; gap: 12px;">
+                        <div>
+                            <strong style="color: var(--accent-green);">✅ Bullish Signals:</strong>
+                            <ul style="font-size: 12px; margin: 8px 0; padding-left: 20px;">
+                                <li>Golden Cross: MA10 crosses above MA20</li>
+                                <li>RSI bounces off 30 (oversold)</li>
+                                <li>MACD line crosses above signal line</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: var(--accent-red);">⛔ Bearish Signals:</strong>
+                            <ul style="font-size: 12px; margin: 8px 0; padding-left: 20px;">
+                                <li>Death Cross: MA10 crosses below MA20</li>
+                                <li>RSI fails at 70 (overbought)</li>
+                                <li>MACD line crosses below signal line</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+ 
 </script>
 </body>
 </html>
+
